@@ -1,0 +1,3 @@
+CREATE POLICY "own medicine images read" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'medicine-images' AND auth.uid()::text = (storage.foldername(name))[1]);
+CREATE POLICY "own medicine images insert" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'medicine-images' AND auth.uid()::text = (storage.foldername(name))[1]);
+CREATE POLICY "own medicine images delete" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'medicine-images' AND auth.uid()::text = (storage.foldername(name))[1]);
