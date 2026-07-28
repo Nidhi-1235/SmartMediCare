@@ -78,14 +78,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "SmartMediCare — talking medicine helper" },
+      { name: "description", content: "Scan medicines, hear labels read aloud, get reminders and reach help — built for blind users." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "SmartMediCare — talking medicine helper" },
+      { property: "og:description", content: "Scan medicines, hear labels read aloud, get reminders and reach help — built for blind users." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "SmartMediCare — talking medicine helper" },
+      { name: "twitter:description", content: "Scan medicines, hear labels read aloud, get reminders and reach help — built for blind users." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/75e50d58-ef90-4c20-89bf-cca3a83a61be/id-preview-72b2b729--bcec4aa3-5a2e-405f-af81-4e9f814c802f.lovable.app-1785243730223.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/75e50d58-ef90-4c20-89bf-cca3a83a61be/id-preview-72b2b729--bcec4aa3-5a2e-405f-af81-4e9f814c802f.lovable.app-1785243730223.png" },
     ],
     links: [
       {
