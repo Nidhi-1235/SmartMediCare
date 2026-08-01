@@ -1,29 +1,43 @@
-# Welcome to your Lovable project
+# 💊 SmartMediCare
 
-This project was built with [Lovable](https://lovable.dev).
+SmartMediCare is an AI-powered mobile application designed to assist visually impaired users in managing their medications safely and independently. The app leverages OCR, NLP, voice assistance, and Firebase to provide an accessible and user-friendly healthcare experience.
 
-## Build with Lovable
+## 🚀 Features
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+- 📷 Scan medicine labels using OCR
+- 🔊 Voice guidance with Text-to-Speech (TTS)
+- 💊 Medicine reminders and notifications
+- ⏰ Expiry date alerts
+- 🧠 AI-powered medicine information
+- ☁️ Secure data storage with Firebase
+- 📱 Accessible and intuitive user interface
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+## 🛠️ Technologies Used
 
-## Development
+- Flutter
+- Python
+- Firebase
+- OpenCV
+- OCR
+- NLP
+- Text-to-Speech (TTS)
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+## 🎯 Project Objective
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+To empower visually impaired users by providing an intelligent medicine assistance system that improves medication safety, accessibility, and independence.
 
-## Built with
+## 📂 Project Status
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+🚧 **Currently Under Development**
+
+## 👩‍💻 Author
+
+**Nidhi N**
+
+- GitHub: https://github.com/nidhi-1235
+- LinkedIn: https://www.linkedin.com/in/nidhinatesh
+- Email: nidhinatesh0047@gmail.com
+
+---
+
+⭐ If you like this project, consider giving it a star!
