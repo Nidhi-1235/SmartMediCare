@@ -3,14 +3,16 @@ import { CalendarClock, Home, MessageCircleHeart, ScanLine, Settings2 } from "lu
 import type { ReactNode } from "react";
 import { SosButton } from "./sos-button";
 import { cn } from "@/lib/utils";
+import { useI18n, type TranslationKey } from "@/lib/i18n";
+import { useDoseReminders } from "@/lib/use-dose-reminders";
 
 const NAV = [
-  { to: "/home", label: "Home", icon: Home },
-  { to: "/scan", label: "Scan", icon: ScanLine },
-  { to: "/schedule", label: "Schedule", icon: CalendarClock },
-  { to: "/assistant", label: "Voice", icon: MessageCircleHeart },
-  { to: "/more", label: "More", icon: Settings2 },
-] as const;
+  { to: "/home", labelKey: "nav.home", icon: Home },
+  { to: "/scan", labelKey: "nav.scan", icon: ScanLine },
+  { to: "/schedule", labelKey: "nav.schedule", icon: CalendarClock },
+  { to: "/assistant", labelKey: "nav.voice", icon: MessageCircleHeart },
+  { to: "/more", labelKey: "nav.more", icon: Settings2 },
+] as const satisfies ReadonlyArray<{ to: string; labelKey: TranslationKey; icon: typeof Home }>;
 
 export function AppShell({
   title,
@@ -24,6 +26,8 @@ export function AppShell({
   action?: ReactNode;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { t } = useI18n();
+  useDoseReminders();
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col bg-background">
@@ -55,7 +59,8 @@ export function AppShell({
         className="fixed bottom-0 left-1/2 z-30 w-full max-w-2xl -translate-x-1/2 border-t border-border bg-card px-2 pb-[env(safe-area-inset-bottom)] pt-1"
       >
         <ul className="grid grid-cols-5">
-          {NAV.map(({ to, label, icon: Icon }) => {
+          {NAV.map(({ to, labelKey, icon: Icon }) => {
+            const label = t(labelKey);
             const active = pathname === to || pathname.startsWith(`${to}/`);
             return (
               <li key={to}>
