@@ -150,7 +150,14 @@ export function CameraCapture({
       <Button
         type="button"
         variant="outline"
-        onClick={() => fileRef.current?.click()}
+        onClick={async () => {
+          if (isNative()) {
+            const photo = await nativePickPhoto();
+            if (photo) onCapture(photo.dataUrl);
+            return;
+          }
+          fileRef.current?.click();
+        }}
         disabled={busy}
         className="tap-target mt-3 w-full border-2 text-lg font-bold"
       >
