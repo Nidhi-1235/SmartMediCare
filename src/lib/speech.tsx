@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { isNative, nativeSpeak, nativeStopSpeaking } from "@/lib/native";
 
 type SpeechContextValue = {
   speak: (text: string, opts?: { interrupt?: boolean }) => void;
