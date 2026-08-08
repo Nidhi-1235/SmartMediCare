@@ -29,7 +29,7 @@ export function SpeechProvider({ children }: { children: ReactNode }) {
   const readyRef = useRef(false);
 
   useEffect(() => {
-    setSupported(typeof window !== "undefined" && "speechSynthesis" in window);
+    setSupported(isNative() || (typeof window !== "undefined" && "speechSynthesis" in window));
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
