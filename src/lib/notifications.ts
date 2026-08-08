@@ -1,14 +1,29 @@
-/** Local (on-device) reminder notifications. Works in the browser and inside an Android WebView/PWA. */
+/**
+ * Reminder notifications.
+ * On Android (Capacitor shell) these are real scheduled OS notifications that
+ * fire even when the app is closed. On the web they fall back to browser
+ * notifications driven by in-page timers.
+ */
+
+import {
+  isNative,
+  nativeBuzz,
+  nativeRequestNotifications,
+  nativeScheduleReminders,
+  nativeShowNow,
+} from "@/lib/native";
 
 const SW_URL = "/reminders-sw.js";
 
 export type ReminderPermission = "granted" | "denied" | "default" | "unsupported";
 
 export function notificationsSupported() {
+  if (isNative()) return true;
   return typeof window !== "undefined" && "Notification" in window;
 }
 
 export function reminderPermission(): ReminderPermission {
+  if (isNative()) return "granted";
   if (!notificationsSupported()) return "unsupported";
   return Notification.permission as ReminderPermission;
 }
@@ -27,6 +42,10 @@ async function getRegistration() {
 }
 
 export async function requestReminderPermission(): Promise<ReminderPermission> {
+  if (isNative()) {
+    const result = await nativeRequestNotifications();
+    return result === "granted" ? "granted" : "denied";
+  }
   if (!notificationsSupported()) return "unsupported";
   const result = (await Notification.requestPermission()) as ReminderPermission;
   if (result === "granted") await getRegistration();
@@ -34,6 +53,11 @@ export async function requestReminderPermission(): Promise<ReminderPermission> {
 }
 
 export async function showReminder(title: string, body: string, tag = "smc-reminder") {
+  if (isNative()) {
+    const ok = await nativeShowNow(title, body);
+    void nativeBuzz(true);
+    return ok;
+  }
   if (!notificationsSupported() || Notification.permission !== "granted") return false;
   const options: NotificationOptions = {
     body,
@@ -49,7 +73,7 @@ export async function showReminder(title: string, body: string, tag = "smc-remin
   } else {
     new Notification(title, options);
   }
-  if ("vibrate" in navigator) navigator.vibrate?.([250, 120, 250]);
+  void nativeBuzz(true);
   return true;
 }
 
@@ -57,9 +81,13 @@ export type ReminderItem = { key: string; at: Date; title: string; body: string 
 
 let timers: number[] = [];
 
-/** Replaces all pending in-app reminder timers with the given list. */
+/** Replaces all pending reminders with the given list. */
 export function scheduleReminders(items: ReminderItem[]) {
   clearReminders();
+  if (isNative()) {
+    void nativeScheduleReminders(items);
+    return items.length;
+  }
   if (!notificationsSupported() || Notification.permission !== "granted") return 0;
   const now = Date.now();
   let scheduled = 0;

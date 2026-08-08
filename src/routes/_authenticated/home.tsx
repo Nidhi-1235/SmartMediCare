@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useSpeech } from "@/lib/speech";
 import { alertsQuery, doseLogsQuery, logDose, medicinesQuery, profileQuery, schedulesQuery } from "@/lib/db";
 import { buildTodayDoses, daysUntil, friendlyTime, spokenSummary } from "@/lib/dose-utils";
+import { nativeBuzz } from "@/lib/native";
 
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
@@ -65,6 +66,7 @@ function HomePage() {
     }) => logDose({ medicine_id: medicineId, schedule_id: scheduleId, scheduled_for: scheduledFor, status }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["dose_logs"] });
+      void nativeBuzz(variables.status === "taken");
       speak(variables.status === "taken" ? "Marked as taken. Well done." : "Dose skipped.");
     },
     onError: () => speak("Sorry, that did not save. Please try again."),

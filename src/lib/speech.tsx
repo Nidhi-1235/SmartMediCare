@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { isNative, nativeSpeak, nativeStopSpeaking } from "@/lib/native";
 
 type SpeechContextValue = {
   speak: (text: string, opts?: { interrupt?: boolean }) => void;
@@ -28,7 +29,7 @@ export function SpeechProvider({ children }: { children: ReactNode }) {
   const readyRef = useRef(false);
 
   useEffect(() => {
-    setSupported(typeof window !== "undefined" && "speechSynthesis" in window);
+    setSupported(isNative() || (typeof window !== "undefined" && "speechSynthesis" in window));
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -73,6 +74,10 @@ export function SpeechProvider({ children }: { children: ReactNode }) {
   );
 
   const stop = useCallback(() => {
+    if (isNative()) {
+      void nativeStopSpeaking();
+      return;
+    }
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   }, []);
 
@@ -80,6 +85,11 @@ export function SpeechProvider({ children }: { children: ReactNode }) {
     (text: string, opts?: { interrupt?: boolean }) => {
       setLiveMessage(text);
       if (!enabled) return;
+      // Android shell: use the device's built-in voice (better Hindi/Kannada support).
+      if (isNative()) {
+        void nativeSpeak(text, lang, rate);
+        return;
+      }
       if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
       if (opts?.interrupt !== false) window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);

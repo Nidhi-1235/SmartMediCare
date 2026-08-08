@@ -3,6 +3,7 @@ import { Camera, ImageUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { useSpeech } from "@/lib/speech";
+import { isNative, nativePickPhoto, nativeTakePhoto } from "@/lib/native";
 
 /**
  * Accessible capture flow: live rear-camera preview with a large capture button,
@@ -35,6 +36,17 @@ export function CameraCapture({
 
   async function openCamera() {
     setError(null);
+    // On Android (Capacitor shell) use the real native camera app.
+    if (isNative()) {
+      const photo = await nativeTakePhoto();
+      if (photo) {
+        onCapture(photo.dataUrl);
+      } else {
+        setError(t("scan.cameraError"));
+        speak(t("scan.cameraError"));
+      }
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } },
@@ -138,7 +150,14 @@ export function CameraCapture({
       <Button
         type="button"
         variant="outline"
-        onClick={() => fileRef.current?.click()}
+        onClick={async () => {
+          if (isNative()) {
+            const photo = await nativePickPhoto();
+            if (photo) onCapture(photo.dataUrl);
+            return;
+          }
+          fileRef.current?.click();
+        }}
         disabled={busy}
         className="tap-target mt-3 w-full border-2 text-lg font-bold"
       >
