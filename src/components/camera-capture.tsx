@@ -36,6 +36,17 @@ export function CameraCapture({
 
   async function openCamera() {
     setError(null);
+    // On Android (Capacitor shell) use the real native camera app.
+    if (isNative()) {
+      const photo = await nativeTakePhoto();
+      if (photo) {
+        onCapture(photo.dataUrl);
+      } else {
+        setError(t("scan.cameraError"));
+        speak(t("scan.cameraError"));
+      }
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } },
