@@ -11,8 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { SpeechProvider, useSpeech } from "../lib/speech";
-import { I18nProvider, useI18n } from "../lib/i18n";
+import { SpeechProvider } from "../lib/speech";
 
 function NotFoundComponent() {
   return (
@@ -82,7 +81,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "SmartMediCare — talking medicine helper" },
       { name: "description", content: "Scan medicines, hear labels read aloud, get reminders and reach help — built for blind users." },
       { name: "author", content: "Lovable" },
-      { name: "theme-color", content: "#0f766e" },
       { property: "og:title", content: "SmartMediCare — talking medicine helper" },
       { property: "og:description", content: "Scan medicines, hear labels read aloud, get reminders and reach help — built for blind users." },
       { property: "og:type", content: "website" },
@@ -99,8 +97,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/icons/icon-192.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -123,27 +119,15 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function SpeechLanguageSync() {
-  const { speechLang } = useI18n();
-  const { setLang } = useSpeech();
-  useEffect(() => {
-    setLang(speechLang);
-  }, [speechLang, setLang]);
-  return null;
-}
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        <SpeechProvider>
-          <SpeechLanguageSync />
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-        </SpeechProvider>
-      </I18nProvider>
+      <SpeechProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </SpeechProvider>
     </QueryClientProvider>
   );
 }

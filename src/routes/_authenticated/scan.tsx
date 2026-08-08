@@ -1,10 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Save, Volume2 } from "lucide-react";
+import { Camera, Loader2, Save, Volume2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { CameraCapture } from "@/components/camera-capture";
-import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,11 +28,20 @@ export const Route = createFileRoute("/_authenticated/scan")({
   component: ScanPage,
 });
 
+async function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read that photo."));
+    reader.readAsDataURL(file);
+  });
+}
+
 function ScanPage() {
   const { speak } = useSpeech();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { t } = useI18n();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [mode, setMode] = useState<"medicine" | "prescription">("medicine");
   const [busy, setBusy] = useState(false);
@@ -48,7 +55,7 @@ function ScanPage() {
     "Scan screen. Tap the big camera button to take a photo of your medicine. I will read the details back to you.",
   );
 
-  async function handleImage(dataUrl: string) {
+  async function handleFile(file: File) {
     setBusy(true);
     setResult(null);
     setPrescription(null);
@@ -56,6 +63,7 @@ function ScanPage() {
     setStatus(working);
     speak(working);
     try {
+      const dataUrl = await fileToDataUrl(file);
       setImageDataUrl(dataUrl);
       if (mode === "medicine") {
         const scan = await scanMedicineImage({ data: { imageDataUrl: dataUrl } });
@@ -182,12 +190,12 @@ function ScanPage() {
   }
 
   return (
-    <AppShell title={t("scan.title")} subtitle={t("scan.subtitle")}>
+    <AppShell title="Scan" subtitle="Point your camera at the label">
       <div className="flex gap-2" role="tablist" aria-label="What are you scanning?">
         {(
           [
-            ["medicine", t("scan.medicine")],
-            ["prescription", t("scan.prescription")],
+            ["medicine", "Medicine box"],
+            ["prescription", "Prescription"],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -208,14 +216,36 @@ function ScanPage() {
         ))}
       </div>
 
-      <CameraCapture
-        busy={busy}
-        onCapture={(dataUrl) => void handleImage(dataUrl)}
-        label={mode === "medicine" ? t("scan.medicine") : t("scan.prescription")}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void handleFile(file);
+          event.target.value = "";
+        }}
       />
 
+      <Button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        className="mt-6 flex h-56 w-full flex-col items-center justify-center gap-3 rounded-3xl text-2xl font-extrabold"
+        aria-label={mode === "medicine" ? "Take a photo of the medicine label" : "Take a photo of the prescription"}
+      >
+        {busy ? (
+          <Loader2 aria-hidden="true" className="size-14 animate-spin" />
+        ) : (
+          <Camera aria-hidden="true" className="size-14" />
+        )}
+        {busy ? "Reading…" : "Take photo"}
+      </Button>
+
       <p role="status" aria-live="polite" className="mt-5 min-h-14 rounded-2xl bg-secondary px-4 py-3 text-lg font-medium text-foreground">
-        {status ?? t("scan.ready")}
+        {status ?? "Ready when you are. Hold the pack steady in good light."}
       </p>
 
       {status ? (
@@ -225,7 +255,7 @@ function ScanPage() {
           className="tap-target mt-3 w-full border-2 text-base font-bold"
         >
           <Volume2 aria-hidden="true" className="size-5" />
-          {t("scan.repeat")}
+          Repeat that
         </Button>
       ) : null}
 

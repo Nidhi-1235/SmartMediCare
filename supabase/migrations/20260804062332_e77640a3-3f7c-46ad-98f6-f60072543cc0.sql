@@ -1,1 +1,0 @@
-CREATE POLICY "own medicine images update" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'medicine-images' AND auth.uid()::text = (storage.foldername(name))[1]) WITH CHECK (bucket_id = 'medicine-images' AND auth.uid()::text = (storage.foldername(name))[1]);

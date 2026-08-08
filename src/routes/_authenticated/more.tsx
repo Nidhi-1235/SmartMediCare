@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Loader2, LogOut, ShieldCheck, Trash2 } from "lucide-react";
+import { Loader2, LogOut, ShieldCheck, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +20,6 @@ import {
   saveProfile,
 } from "@/lib/db";
 import { runSafetyCheck } from "@/lib/smc.functions";
-import { LANGUAGES, useI18n } from "@/lib/i18n";
-import {
-  reminderPermission,
-  requestReminderPermission,
-  showReminder,
-  type ReminderPermission,
-} from "@/lib/notifications";
 
 export const Route = createFileRoute("/_authenticated/more")({
   head: () => ({
@@ -49,12 +42,6 @@ function MorePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { speak, enabled, setEnabled, rate, setRate } = useSpeech();
-  const { t, lang, setLang } = useI18n();
-  const [notifState, setNotifState] = useState<ReminderPermission>("default");
-
-  useEffect(() => {
-    setNotifState(reminderPermission());
-  }, []);
 
   const profile = useQuery(profileQuery);
   const caregivers = useQuery(caregiversQuery);
@@ -131,69 +118,7 @@ function MorePage() {
   const openAlerts = (alerts.data ?? []).filter((a) => !a.acknowledged);
 
   return (
-    <AppShell title={t("more.title")} subtitle="Voice, safety, caregivers">
-      <section aria-labelledby="language-heading" className="mb-6 rounded-3xl border-2 border-border bg-card p-5">
-        <h2 id="language-heading" className="text-xl font-bold text-foreground">
-          {t("more.language")}
-        </h2>
-        <p className="mt-1 text-base text-muted-foreground">{t("more.languageHelp")}</p>
-        <div className="mt-4 grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="language-heading">
-          {LANGUAGES.map((option) => (
-            <Button
-              key={option.code}
-              role="radio"
-              aria-checked={lang === option.code}
-              variant={lang === option.code ? "default" : "outline"}
-              onClick={() => {
-                setLang(option.code);
-                window.setTimeout(() => speak(option.native), 150);
-              }}
-              className="tap-target h-16 border-2 text-lg font-bold"
-            >
-              {option.native}
-            </Button>
-          ))}
-        </div>
-      </section>
-
-      <section aria-labelledby="reminders-heading" className="mb-6 rounded-3xl border-2 border-border bg-card p-5">
-        <h2 id="reminders-heading" className="text-xl font-bold text-foreground">
-          {t("more.reminders")}
-        </h2>
-        <p className="mt-1 text-base text-muted-foreground">{t("more.remindersHelp")}</p>
-        {notifState === "granted" ? (
-          <>
-            <p className="mt-4 rounded-2xl bg-secondary px-4 py-3 text-base font-semibold text-foreground">
-              {t("more.remindersOn")}
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => void showReminder(t("reminder.title"), t("reminder.test"), "smc-test")}
-              className="tap-target mt-3 w-full border-2 text-lg font-bold"
-            >
-              <Bell aria-hidden="true" className="size-5" />
-              {t("more.testReminder")}
-            </Button>
-          </>
-        ) : notifState === "denied" || notifState === "unsupported" ? (
-          <p role="alert" className="mt-4 rounded-2xl bg-destructive/10 px-4 py-3 text-base font-semibold text-foreground">
-            {t("more.remindersBlocked")}
-          </p>
-        ) : (
-          <Button
-            onClick={async () => {
-              const result = await requestReminderPermission();
-              setNotifState(result);
-              speak(result === "granted" ? t("more.remindersOn") : t("more.remindersBlocked"));
-            }}
-            className="tap-target mt-4 w-full text-lg font-bold"
-          >
-            <Bell aria-hidden="true" className="size-5" />
-            {t("more.enableReminders")}
-          </Button>
-        )}
-      </section>
-
+    <AppShell title="More" subtitle="Voice, safety, caregivers">
       <section aria-labelledby="voice-heading" className="rounded-3xl border-2 border-border bg-card p-5">
         <h2 id="voice-heading" className="text-xl font-bold text-foreground">
           Voice

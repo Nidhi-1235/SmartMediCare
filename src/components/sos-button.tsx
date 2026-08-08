@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Siren } from "lucide-react";
 import { useSpeech } from "@/lib/speech";
-import { nativeBuzz } from "@/lib/native";
 
 /** Always-reachable emergency button. Long-press-free: one big tap opens the emergency screen. */
 export function SosButton() {
@@ -15,7 +14,6 @@ export function SosButton() {
       type="button"
       onClick={() => {
         setPressed(true);
-        void nativeBuzz(true);
         speak("Opening emergency help.");
         navigate({ to: "/emergency" });
       }}
