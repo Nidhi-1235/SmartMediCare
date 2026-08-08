@@ -74,6 +74,10 @@ export function SpeechProvider({ children }: { children: ReactNode }) {
   );
 
   const stop = useCallback(() => {
+    if (isNative()) {
+      void nativeStopSpeaking();
+      return;
+    }
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   }, []);
 
@@ -81,6 +85,11 @@ export function SpeechProvider({ children }: { children: ReactNode }) {
     (text: string, opts?: { interrupt?: boolean }) => {
       setLiveMessage(text);
       if (!enabled) return;
+      // Android shell: use the device's built-in voice (better Hindi/Kannada support).
+      if (isNative()) {
+        void nativeSpeak(text, lang, rate);
+        return;
+      }
       if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
       if (opts?.interrupt !== false) window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
