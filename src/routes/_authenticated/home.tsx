@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useSpeech } from "@/lib/speech";
 import { alertsQuery, doseLogsQuery, logDose, medicinesQuery, profileQuery, schedulesQuery } from "@/lib/db";
 import { buildTodayDoses, daysUntil, friendlyTime, spokenSummary } from "@/lib/dose-utils";
+import { nativeBuzz } from "@/lib/native";
 
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
