@@ -3,6 +3,7 @@ import { Camera, ImageUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { useSpeech } from "@/lib/speech";
+import { isNative, nativePickPhoto, nativeTakePhoto } from "@/lib/native";
 
 /**
  * Accessible capture flow: live rear-camera preview with a large capture button,
