@@ -26,6 +26,7 @@ export function AppShell({
   action?: ReactNode;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { t } = useI18n();
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col bg-background">
