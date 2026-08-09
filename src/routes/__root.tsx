@@ -125,10 +125,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SpeechProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-      </SpeechProvider>
+      <LanguageProvider>
+        <SpeechProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </SpeechProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }
