@@ -7,18 +7,19 @@ import {
   SAFETY_PROMPT,
   callAi,
   extractJson,
+  languageInstruction,
 } from "./ai.server";
 import type { MedicineScanResult, PrescriptionResult, SafetyResult } from "./ai-types";
 
 export const scanMedicineImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { imageDataUrl: string }) => {
+  .inputValidator((input: { imageDataUrl: string; language?: string }) => {
     if (!input?.imageDataUrl?.startsWith("data:image/")) throw new Error("A photo is required.");
     return input;
   })
   .handler(async ({ data }): Promise<MedicineScanResult> => {
     const raw = await callAi([
-      { role: "system", content: MEDICINE_SCAN_PROMPT },
+      { role: "system", content: MEDICINE_SCAN_PROMPT + languageInstruction(data.language) },
       {
         role: "user",
         content: [
@@ -42,13 +43,13 @@ export const scanMedicineImage = createServerFn({ method: "POST" })
 
 export const readPrescriptionImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { imageDataUrl: string }) => {
+  .inputValidator((input: { imageDataUrl: string; language?: string }) => {
     if (!input?.imageDataUrl?.startsWith("data:image/")) throw new Error("A photo is required.");
     return input;
   })
   .handler(async ({ data }): Promise<PrescriptionResult> => {
     const raw = await callAi([
-      { role: "system", content: PRESCRIPTION_PROMPT },
+      { role: "system", content: PRESCRIPTION_PROMPT + languageInstruction(data.language) },
       {
         role: "user",
         content: [
@@ -68,7 +69,10 @@ export const readPrescriptionImage = createServerFn({ method: "POST" })
 export const runSafetyCheck = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (input: { medicines: Array<{ name: string; dosage?: string | null; expiry_date?: string | null }> }) => input,
+    (input: {
+      medicines: Array<{ name: string; dosage?: string | null; expiry_date?: string | null }>;
+      language?: string;
+    }) => input,
   )
   .handler(async ({ data }): Promise<SafetyResult> => {
     if (!data.medicines?.length) {
@@ -78,7 +82,7 @@ export const runSafetyCheck = createServerFn({ method: "POST" })
       .map((m) => `- ${m.name}${m.dosage ? `, dose ${m.dosage}` : ""}${m.expiry_date ? `, expires ${m.expiry_date}` : ""}`)
       .join("\n");
     const raw = await callAi([
-      { role: "system", content: SAFETY_PROMPT },
+      { role: "system", content: SAFETY_PROMPT + languageInstruction(data.language) },
       { role: "user", content: `Today is ${new Date().toISOString().slice(0, 10)}.\nPatient medicines:\n${list}` },
     ]);
     return extractJson<SafetyResult>(raw, {
@@ -89,13 +93,13 @@ export const runSafetyCheck = createServerFn({ method: "POST" })
 
 export const askAssistant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { question: string; contextText: string }) => {
+  .inputValidator((input: { question: string; contextText: string; language?: string }) => {
     if (!input?.question?.trim()) throw new Error("Please ask a question.");
     return input;
   })
   .handler(async ({ data }): Promise<{ answer: string }> => {
     const answer = await callAi([
-      { role: "system", content: ASSISTANT_PROMPT },
+      { role: "system", content: ASSISTANT_PROMPT + languageInstruction(data.language) },
       {
         role: "user",
         content: `Current time: ${new Date().toString()}\n\nPatient data:\n${data.contextText || "No medicines saved yet."}\n\nQuestion: ${data.question}`,
