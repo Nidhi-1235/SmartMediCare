@@ -90,3 +90,9 @@ export const ASSISTANT_PROMPT = `You are SmartMediCare, a calm voice assistant f
 - Use the patient's own medicine and schedule data given to you. If the answer is not in that data, say so plainly.
 - Never give a diagnosis or change a dose. For medical decisions, tell them to check with their doctor or pharmacist.
 - For emergencies, tell them to use the emergency button or call local emergency services.`;
+
+/** Appended to a system prompt so spoken text comes back in the user's language. */
+export function languageInstruction(language?: string) {
+  const target = (language ?? "").trim() || "English";
+  return `\n\nIMPORTANT: Write every human-readable field (spoken_summary, title, message, instructions and any answer text) in ${target}. Keep JSON keys, dates and 24-hour times in their original format.`;
+}
