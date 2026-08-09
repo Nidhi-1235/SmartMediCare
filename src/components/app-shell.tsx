@@ -2,14 +2,16 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { CalendarClock, Home, MessageCircleHeart, ScanLine, Settings2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { SosButton } from "./sos-button";
+import { VoiceCommandBar } from "./voice-command-bar";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/home", label: "Home", icon: Home },
-  { to: "/scan", label: "Scan", icon: ScanLine },
-  { to: "/schedule", label: "Schedule", icon: CalendarClock },
-  { to: "/assistant", label: "Voice", icon: MessageCircleHeart },
-  { to: "/more", label: "More", icon: Settings2 },
+  { to: "/home", labelKey: "nav.home", icon: Home },
+  { to: "/scan", labelKey: "nav.scan", icon: ScanLine },
+  { to: "/schedule", labelKey: "nav.schedule", icon: CalendarClock },
+  { to: "/assistant", labelKey: "nav.assistant", icon: MessageCircleHeart },
+  { to: "/more", labelKey: "nav.more", icon: Settings2 },
 ] as const;
 
 export function AppShell({
