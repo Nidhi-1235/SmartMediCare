@@ -1,12 +1,14 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera, Loader2, Save, Volume2 } from "lucide-react";
+import { Camera, Loader2, Save, Upload, Volume2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSpeech, useSpokenIntro } from "@/lib/speech";
+import { useI18n } from "@/lib/i18n";
+import { useVoiceIntent } from "@/lib/voice-commands";
 import { insertMedicine, insertPrescription, insertSchedule, uploadMedicineImage } from "@/lib/db";
 import { readPrescriptionImage, scanMedicineImage } from "@/lib/smc.functions";
 import type { MedicineScanResult, PrescriptionResult } from "@/lib/ai-types";
@@ -15,11 +17,14 @@ export const Route = createFileRoute("/_authenticated/scan")({
   head: () => ({
     meta: [
       { title: "Scan a medicine — SmartMediCare" },
-      { name: "description", content: "Photograph a medicine label or prescription and hear the details read aloud." },
+      {
+        name: "description",
+        content: "Photograph or upload a medicine label or prescription and hear the details read aloud.",
+      },
       { property: "og:title", content: "Scan a medicine — SmartMediCare" },
       {
         property: "og:description",
-        content: "Photograph a medicine label or prescription and hear the details read aloud.",
+        content: "Photograph or upload a medicine label or prescription and hear the details read aloud.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -28,20 +33,43 @@ export const Route = createFileRoute("/_authenticated/scan")({
   component: ScanPage,
 });
 
-async function fileToDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
+/** Reads a photo and shrinks it so uploads stay small enough for the AI reader. */
+async function fileToDataUrl(file: File, maxSide = 1600) {
+  const raw = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(new Error("Could not read that photo."));
     reader.readAsDataURL(file);
   });
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("decode failed"));
+      img.src = raw;
+    });
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+    if (scale === 1 && raw.length < 3_000_000) return raw;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(image.width * scale);
+    canvas.height = Math.round(image.height * scale);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return raw;
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.85);
+  } catch {
+    return raw;
+  }
 }
 
 function ScanPage() {
-  const { speak } = useSpeech();
+  const { speak, repeat } = useSpeech();
+  const { t, aiLanguage } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
 
   const [mode, setMode] = useState<"medicine" | "prescription">("medicine");
   const [busy, setBusy] = useState(false);
@@ -51,34 +79,37 @@ function ScanPage() {
   const [prescription, setPrescription] = useState<PrescriptionResult | null>(null);
   const [times, setTimes] = useState("08:00, 20:00");
 
-  useSpokenIntro(
-    "Scan screen. Tap the big camera button to take a photo of your medicine. I will read the details back to you.",
-  );
+  useSpokenIntro(t("scan.intro"));
 
   async function handleFile(file: File) {
+    if (!file.type.startsWith("image/")) {
+      setStatus(t("scan.notAnImage"));
+      speak(t("scan.notAnImage"));
+      return;
+    }
     setBusy(true);
     setResult(null);
     setPrescription(null);
-    const working = mode === "medicine" ? "Reading your medicine label. Please hold on." : "Reading your prescription.";
+    const working = mode === "medicine" ? t("scan.readingMedicine") : t("scan.readingPrescription");
     setStatus(working);
     speak(working);
     try {
       const dataUrl = await fileToDataUrl(file);
       setImageDataUrl(dataUrl);
       if (mode === "medicine") {
-        const scan = await scanMedicineImage({ data: { imageDataUrl: dataUrl } });
+        const scan = await scanMedicineImage({ data: { imageDataUrl: dataUrl, language: aiLanguage } });
         setResult(scan);
         setStatus(scan.spoken_summary);
-        speak(scan.spoken_summary || `I read ${scan.name || "no clear name"}.`);
+        speak(scan.spoken_summary || scan.name || t("scan.failed"));
       } else {
-        const parsed = await readPrescriptionImage({ data: { imageDataUrl: dataUrl } });
+        const parsed = await readPrescriptionImage({ data: { imageDataUrl: dataUrl, language: aiLanguage } });
         setPrescription(parsed);
-        const spoken = parsed.spoken_summary || `I found ${parsed.medicines.length} medicines.`;
+        const spoken = parsed.spoken_summary || `${parsed.medicines.length}`;
         setStatus(spoken);
         speak(spoken);
       }
     } catch (error) {
-      const text = error instanceof Error ? error.message : "I could not read that photo. Please try again.";
+      const text = error instanceof Error ? error.message : t("scan.failed");
       setStatus(text);
       speak(text);
     } finally {
@@ -111,9 +142,9 @@ function ScanPage() {
 
       const parsedTimes = times
         .split(",")
-        .map((t) => t.trim())
-        .filter((t) => /^\d{1,2}:\d{2}$/.test(t))
-        .map((t) => (t.length === 4 ? `0${t}` : t));
+        .map((t2) => t2.trim())
+        .filter((t2) => /^\d{1,2}:\d{2}$/.test(t2))
+        .map((t2) => (t2.length === 4 ? `0${t2}` : t2));
 
       if (parsedTimes.length) {
         await insertSchedule({
@@ -126,10 +157,10 @@ function ScanPage() {
       }
 
       queryClient.invalidateQueries();
-      speak(`${medicine.name} saved with ${parsedTimes.length} daily reminders.`);
+      speak(`${medicine.name} — ${t("common.save")}`);
       navigate({ to: "/home" });
     } catch (error) {
-      const text = error instanceof Error ? error.message : "Saving failed. Please try again.";
+      const text = error instanceof Error ? error.message : t("scan.saveFailed");
       setStatus(text);
       speak(text);
     } finally {
@@ -161,7 +192,7 @@ function ScanPage() {
           dosage: item.dosage || null,
           instructions: item.instructions || null,
         });
-        const itemTimes = (item.times ?? []).filter((t) => /^\d{2}:\d{2}$/.test(t));
+        const itemTimes = (item.times ?? []).filter((time) => /^\d{2}:\d{2}$/.test(time));
         if (itemTimes.length) {
           await insertSchedule({
             medicine_id: medicine.id,
@@ -178,10 +209,10 @@ function ScanPage() {
       }
 
       queryClient.invalidateQueries();
-      speak(`Saved ${prescription.medicines.length} medicines from your prescription.`);
+      speak(`${prescription.medicines.length} — ${t("common.save")}`);
       navigate({ to: "/home" });
     } catch (error) {
-      const text = error instanceof Error ? error.message : "Saving failed. Please try again.";
+      const text = error instanceof Error ? error.message : t("scan.saveFailed");
       setStatus(text);
       speak(text);
     } finally {
@@ -189,13 +220,38 @@ function ScanPage() {
     }
   }
 
+  useVoiceIntent(
+    useCallback(
+      (intent) => {
+        if (intent === "takePhoto") cameraRef.current?.click();
+        else if (intent === "uploadPhoto") uploadRef.current?.click();
+        else if (intent === "save") {
+          if (result) void saveMedicine();
+          else if (prescription) void savePrescription();
+        } else if (intent === "readPage") speak(status ?? t("scan.ready"));
+        else if (intent === "repeat") repeat();
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [result, prescription, status, t, speak, repeat],
+    ),
+  );
+
+  const onPick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      speak(t("scan.photoChosen"));
+      void handleFile(file);
+    }
+    event.target.value = "";
+  };
+
   return (
-    <AppShell title="Scan" subtitle="Point your camera at the label">
-      <div className="flex gap-2" role="tablist" aria-label="What are you scanning?">
+    <AppShell title={t("scan.title")} subtitle={t("scan.subtitle")}>
+      <div className="flex gap-2" role="tablist" aria-label={t("scan.title")}>
         {(
           [
-            ["medicine", "Medicine box"],
-            ["prescription", "Prescription"],
+            ["medicine", t("scan.medicine")],
+            ["prescription", t("scan.prescription")],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -205,7 +261,7 @@ function ScanPage() {
             aria-selected={mode === value}
             onClick={() => {
               setMode(value);
-              speak(`${label} selected.`);
+              speak(label);
             }}
             className={`tap-target flex-1 rounded-2xl border-2 px-3 text-base font-bold ${
               mode === value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground"
@@ -216,36 +272,42 @@ function ScanPage() {
         ))}
       </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="sr-only"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) void handleFile(file);
-          event.target.value = "";
-        }}
-      />
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={onPick} />
+      <input ref={uploadRef} type="file" accept="image/*" className="sr-only" onChange={onPick} />
 
       <Button
         type="button"
-        onClick={() => inputRef.current?.click()}
+        onClick={() => cameraRef.current?.click()}
         disabled={busy}
-        className="mt-6 flex h-56 w-full flex-col items-center justify-center gap-3 rounded-3xl text-2xl font-extrabold"
-        aria-label={mode === "medicine" ? "Take a photo of the medicine label" : "Take a photo of the prescription"}
+        className="mt-6 flex h-48 w-full flex-col items-center justify-center gap-3 rounded-3xl text-2xl font-extrabold"
+        aria-label={t("scan.takePhoto")}
       >
         {busy ? (
           <Loader2 aria-hidden="true" className="size-14 animate-spin" />
         ) : (
           <Camera aria-hidden="true" className="size-14" />
         )}
-        {busy ? "Reading…" : "Take photo"}
+        {busy ? t("scan.reading") : t("scan.takePhoto")}
       </Button>
 
-      <p role="status" aria-live="polite" className="mt-5 min-h-14 rounded-2xl bg-secondary px-4 py-3 text-lg font-medium text-foreground">
-        {status ?? "Ready when you are. Hold the pack steady in good light."}
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={() => uploadRef.current?.click()}
+        disabled={busy}
+        className="mt-3 flex h-28 w-full flex-col items-center justify-center gap-2 rounded-3xl border-2 border-border text-xl font-extrabold"
+        aria-label={t("scan.uploadPhoto")}
+      >
+        <Upload aria-hidden="true" className="size-10" />
+        {t("scan.uploadPhoto")}
+      </Button>
+
+      <p
+        role="status"
+        aria-live="polite"
+        className="mt-5 min-h-14 rounded-2xl bg-secondary px-4 py-3 text-lg font-medium text-foreground"
+      >
+        {status ?? t("scan.ready")}
       </p>
 
       {status ? (
@@ -255,34 +317,36 @@ function ScanPage() {
           className="tap-target mt-3 w-full border-2 text-base font-bold"
         >
           <Volume2 aria-hidden="true" className="size-5" />
-          Repeat that
+          {t("common.repeat")}
         </Button>
       ) : null}
 
       {result ? (
         <section aria-labelledby="scan-result" className="mt-8 space-y-4 rounded-3xl border-2 border-border bg-card p-5">
           <h2 id="scan-result" className="text-xl font-bold text-foreground">
-            What I read
+            {t("scan.whatIRead")}
           </h2>
           <dl className="space-y-3">
             {[
-              ["Name", result.name],
-              ["Strength", result.strength],
-              ["Form", result.form],
-              ["Dose", result.dosage],
-              ["Expiry", result.expiry_date],
-              ["Instructions", result.instructions],
+              [t("scan.field.name"), result.name],
+              [t("scan.field.strength"), result.strength],
+              [t("scan.field.form"), result.form],
+              [t("scan.field.dose"), result.dosage],
+              [t("scan.field.expiry"), result.expiry_date],
+              [t("scan.field.instructions"), result.instructions],
             ].map(([label, value]) => (
               <div key={label} className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2">
                 <dt className="text-base font-semibold text-muted-foreground">{label}</dt>
-                <dd className="min-w-0 break-words text-base font-bold text-foreground">{value || "Not readable"}</dd>
+                <dd className="min-w-0 break-words text-base font-bold text-foreground">
+                  {value || t("scan.notReadable")}
+                </dd>
               </div>
             ))}
           </dl>
 
           <div className="space-y-2">
             <Label htmlFor="times" className="text-base font-semibold">
-              Reminder times (24-hour, comma separated)
+              {t("scan.times")}
             </Label>
             <Input
               id="times"
@@ -295,7 +359,7 @@ function ScanPage() {
 
           <Button onClick={saveMedicine} disabled={busy} className="tap-target w-full text-lg font-bold">
             <Save aria-hidden="true" className="size-5" />
-            Save medicine and reminders
+            {t("scan.saveMedicine")}
           </Button>
         </section>
       ) : null}
@@ -306,10 +370,10 @@ function ScanPage() {
           className="mt-8 space-y-4 rounded-3xl border-2 border-border bg-card p-5"
         >
           <h2 id="prescription-result" className="text-xl font-bold text-foreground">
-            Medicines found
+            {t("scan.medicinesFound")}
           </h2>
           {prescription.medicines.length === 0 ? (
-            <p className="text-base text-muted-foreground">No medicines could be read. Try another photo.</p>
+            <p className="text-base text-muted-foreground">{t("scan.noMedicines")}</p>
           ) : (
             <ul className="space-y-3">
               {prescription.medicines.map((item, index) => (
@@ -328,7 +392,7 @@ function ScanPage() {
             className="tap-target w-full text-lg font-bold"
           >
             <Save aria-hidden="true" className="size-5" />
-            Save all and create schedules
+            {t("scan.saveAll")}
           </Button>
         </section>
       ) : null}

@@ -2,14 +2,16 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { CalendarClock, Home, MessageCircleHeart, ScanLine, Settings2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { SosButton } from "./sos-button";
+import { VoiceCommandBar } from "./voice-command-bar";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/home", label: "Home", icon: Home },
-  { to: "/scan", label: "Scan", icon: ScanLine },
-  { to: "/schedule", label: "Schedule", icon: CalendarClock },
-  { to: "/assistant", label: "Voice", icon: MessageCircleHeart },
-  { to: "/more", label: "More", icon: Settings2 },
+  { to: "/home", labelKey: "nav.home", icon: Home },
+  { to: "/scan", labelKey: "nav.scan", icon: ScanLine },
+  { to: "/schedule", labelKey: "nav.schedule", icon: CalendarClock },
+  { to: "/assistant", labelKey: "nav.assistant", icon: MessageCircleHeart },
+  { to: "/more", labelKey: "nav.more", icon: Settings2 },
 ] as const;
 
 export function AppShell({
@@ -24,6 +26,7 @@ export function AppShell({
   action?: ReactNode;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { t } = useI18n();
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col bg-background">
@@ -49,13 +52,14 @@ export function AppShell({
       </main>
 
       <SosButton />
+      <VoiceCommandBar />
 
       <nav
         aria-label="Main navigation"
         className="fixed bottom-0 left-1/2 z-30 w-full max-w-2xl -translate-x-1/2 border-t border-border bg-card px-2 pb-[env(safe-area-inset-bottom)] pt-1"
       >
         <ul className="grid grid-cols-5">
-          {NAV.map(({ to, label, icon: Icon }) => {
+          {NAV.map(({ to, labelKey, icon: Icon }) => {
             const active = pathname === to || pathname.startsWith(`${to}/`);
             return (
               <li key={to}>
@@ -68,7 +72,7 @@ export function AppShell({
                   )}
                 >
                   <Icon aria-hidden="true" className="size-6" strokeWidth={active ? 2.6 : 2} />
-                  <span>{label}</span>
+                  <span>{t(labelKey)}</span>
                 </Link>
               </li>
             );

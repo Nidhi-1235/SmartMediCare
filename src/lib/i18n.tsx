@@ -1,0 +1,475 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+
+export type Lang = "en" | "kn" | "hi";
+
+export const LANGUAGES: Array<{ code: Lang; label: string; english: string; locale: string; aiName: string }> = [
+  { code: "en", label: "English", english: "English", locale: "en-US", aiName: "English" },
+  { code: "kn", label: "ಕನ್ನಡ", english: "Kannada", locale: "kn-IN", aiName: "Kannada (ಕನ್ನಡ script)" },
+  { code: "hi", label: "हिंदी", english: "Hindi", locale: "hi-IN", aiName: "Hindi (देवनागरी script)" },
+];
+
+const STORAGE_KEY = "smc.lang";
+
+type Dict = Record<string, string>;
+
+const en: Dict = {
+  "app.name": "SmartMediCare",
+  "nav.home": "Home",
+  "nav.scan": "Scan",
+  "nav.schedule": "Schedule",
+  "nav.assistant": "Voice",
+  "nav.more": "More",
+  "nav.emergency": "Emergency",
+  "common.repeat": "Repeat that",
+  "common.save": "Save",
+  "common.delete": "Delete",
+  "common.on": "On",
+  "common.off": "Off",
+  "common.listening": "Listening…",
+  "common.thinking": "Thinking…",
+  "common.readAloud": "Read this page aloud",
+  "voice.mic": "Voice command",
+  "voice.tapAndSpeak": "Tap and speak a command",
+  "voice.heard": "I heard: {text}",
+  "voice.unknown": "Sorry, I did not understand. You can say: home, scan, schedule, assistant, settings, emergency, take photo, upload photo, save, read page, or repeat.",
+  "voice.help": "You can say: home, scan, schedule, assistant, settings, emergency, take photo, upload photo, save, mark taken, read page, repeat, stop.",
+  "voice.langChanged": "Language changed to English.",
+  "voice.notSupported": "Voice input is not supported in this browser.",
+  "voice.noVoiceInstalled": "Your device has no {language} speaking voice installed, so I will speak in English. The screen stays in {language}.",
+
+  "home.today": "Today",
+  "home.alerts": "Safety alerts",
+  "home.doses": "Doses today",
+  "home.empty": "Nothing scheduled yet. Scan a medicine to get started.",
+  "home.scanCta": "Scan a medicine",
+  "home.taken": "Taken",
+  "home.skip": "Skip",
+  "home.expiring": "Expiring soon",
+  "home.markedTaken": "Marked as taken. Well done.",
+  "home.markedSkipped": "Dose skipped.",
+  "home.saveFailed": "Sorry, that did not save. Please try again.",
+  "home.hello": "Hello",
+  "status.taken": "Taken",
+  "status.skipped": "Skipped",
+  "status.missed": "Missed",
+  "status.due": "Due now",
+  "status.upcoming": "Upcoming",
+
+  "scan.title": "Scan",
+  "scan.subtitle": "Point your camera at the label or upload a photo",
+  "scan.medicine": "Medicine box",
+  "scan.prescription": "Prescription",
+  "scan.takePhoto": "Take photo",
+  "scan.uploadPhoto": "Upload photo",
+  "scan.reading": "Reading…",
+  "scan.intro": "Scan screen. Tap the camera button to take a photo, or the upload button to choose a photo from your phone. I will read the details back to you.",
+  "scan.ready": "Ready when you are. Hold the pack steady in good light.",
+  "scan.readingMedicine": "Reading your medicine label. Please hold on.",
+  "scan.readingPrescription": "Reading your prescription. Please hold on.",
+  "scan.notAnImage": "That file is not a photo. Please choose an image.",
+  "scan.photoChosen": "Photo chosen. Reading it now.",
+  "scan.failed": "I could not read that photo. Please try again.",
+  "scan.whatIRead": "What I read",
+  "scan.notReadable": "Not readable",
+  "scan.times": "Reminder times (24-hour, comma separated)",
+  "scan.saveMedicine": "Save medicine and reminders",
+  "scan.medicinesFound": "Medicines found",
+  "scan.noMedicines": "No medicines could be read. Try another photo.",
+  "scan.saveAll": "Save all and create schedules",
+  "scan.saveFailed": "Saving failed. Please try again.",
+  "scan.field.name": "Name",
+  "scan.field.strength": "Strength",
+  "scan.field.form": "Form",
+  "scan.field.dose": "Dose",
+  "scan.field.expiry": "Expiry",
+  "scan.field.instructions": "Instructions",
+
+  "schedule.title": "My schedule",
+  "schedule.count": "{count} medicines saved",
+  "schedule.empty": "Nothing saved yet. Use the Scan tab to add your first medicine.",
+  "schedule.noDetails": "No details saved",
+  "schedule.noReminders": "No reminders set",
+  "schedule.turnOff": "Turn off reminders",
+
+  "assistant.title": "Voice assistant",
+  "assistant.subtitle": "Ask about your medicines",
+  "assistant.intro": "Voice assistant. Tap the microphone and ask me anything about your medicines.",
+  "assistant.tapSpeak": "Tap and speak",
+  "assistant.tapFinish": "Tap when finished",
+  "assistant.type": "Or type your question",
+  "assistant.send": "Send question",
+  "assistant.you": "You",
+  "assistant.failed": "Sorry, I could not answer that right now.",
+  "assistant.q1": "What do I take next?",
+  "assistant.q2": "Did I take my morning medicine?",
+  "assistant.q3": "Which medicine expires soon?",
+  "assistant.q4": "How many doses are left today?",
+
+  "more.title": "More",
+  "more.subtitle": "Language, voice, safety, caregivers",
+  "more.language": "Language",
+  "more.languageHelp": "Choose the language for the screen and the voice.",
+  "more.voice": "Voice",
+  "more.speakAll": "Speak everything aloud",
+  "more.speed": "Speaking speed: {rate}x",
+  "more.speedDemo": "This is how fast I will speak.",
+  "more.voiceOn": "Voice turned on.",
+  "more.safety": "Safety check",
+  "more.safetyHelp": "Looks for interactions, duplicates and expiry problems. Always confirm with your doctor or pharmacist.",
+  "more.checkMeds": "Check my medicines",
+  "more.checking": "Checking your medicines for safety issues.",
+  "more.checkFailed": "The safety check failed. Please try again.",
+  "more.markRead": "Mark as read",
+  "more.caregivers": "Caregivers",
+  "more.caregiverName": "Caregiver name",
+  "more.relationship": "Relationship",
+  "more.phone": "Phone number",
+  "more.addCaregiver": "Add caregiver",
+  "more.emergencyContact": "Emergency contact",
+  "more.currently": "Currently",
+  "more.notSet": "not set",
+  "more.name": "Name",
+  "more.saveContact": "Save emergency contact",
+  "more.contactSaved": "Emergency contact saved.",
+  "more.signOut": "Sign out",
+
+  "emergency.title": "Emergency",
+  "emergency.subtitle": "Help is one tap away",
+  "emergency.intro": "Emergency screen. Tap the big red button to call your emergency contact.",
+  "emergency.call": "Call {name}",
+  "emergency.noContact": "No contact saved",
+  "emergency.dial": "This will dial {phone} straight away.",
+  "emergency.addContact": "Add an emergency contact in the More tab so this button can call for help.",
+  "emergency.calling": "Calling {name}.",
+  "emergency.noContactSpoken": "No emergency contact saved yet. Please add one in the More tab.",
+};
+
+const kn: Dict = {
+  "app.name": "ಸ್ಮಾರ್ಟ್‌ಮೆಡಿಕೇರ್",
+  "nav.home": "ಮುಖಪುಟ",
+  "nav.scan": "ಸ್ಕ್ಯಾನ್",
+  "nav.schedule": "ವೇಳಾಪಟ್ಟಿ",
+  "nav.assistant": "ಧ್ವನಿ",
+  "nav.more": "ಇನ್ನಷ್ಟು",
+  "nav.emergency": "ತುರ್ತು",
+  "common.repeat": "ಮತ್ತೆ ಹೇಳಿ",
+  "common.save": "ಉಳಿಸಿ",
+  "common.delete": "ಅಳಿಸಿ",
+  "common.on": "ಆನ್",
+  "common.off": "ಆಫ್",
+  "common.listening": "ಕೇಳುತ್ತಿದ್ದೇನೆ…",
+  "common.thinking": "ಯೋಚಿಸುತ್ತಿದ್ದೇನೆ…",
+  "common.readAloud": "ಈ ಪುಟವನ್ನು ಓದಿ ಹೇಳಿ",
+  "voice.mic": "ಧ್ವನಿ ಆದೇಶ",
+  "voice.tapAndSpeak": "ಒತ್ತಿ ಆದೇಶ ಹೇಳಿ",
+  "voice.heard": "ನಾನು ಕೇಳಿದ್ದು: {text}",
+  "voice.unknown": "ಕ್ಷಮಿಸಿ, ಅರ್ಥವಾಗಲಿಲ್ಲ. ನೀವು ಹೇಳಬಹುದು: ಮುಖಪುಟ, ಸ್ಕ್ಯಾನ್, ವೇಳಾಪಟ್ಟಿ, ಸಹಾಯಕ, ಸೆಟ್ಟಿಂಗ್ಸ್, ತುರ್ತು, ಫೋಟೋ ತೆಗೆ, ಫೋಟೋ ಅಪ್‌ಲೋಡ್, ಉಳಿಸಿ, ಪುಟ ಓದಿ, ಮತ್ತೆ ಹೇಳಿ.",
+  "voice.help": "ನೀವು ಹೇಳಬಹುದು: ಮುಖಪುಟ, ಸ್ಕ್ಯಾನ್, ವೇಳಾಪಟ್ಟಿ, ಸಹಾಯಕ, ಸೆಟ್ಟಿಂಗ್ಸ್, ತುರ್ತು, ಫೋಟೋ ತೆಗೆ, ಫೋಟೋ ಅಪ್‌ಲೋಡ್, ಉಳಿಸಿ, ತೆಗೆದುಕೊಂಡೆ, ಪುಟ ಓದಿ, ಮತ್ತೆ ಹೇಳಿ, ನಿಲ್ಲಿಸಿ.",
+  "voice.langChanged": "ಭಾಷೆ ಕನ್ನಡಕ್ಕೆ ಬದಲಾಗಿದೆ.",
+  "voice.notSupported": "ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಧ್ವನಿ ಇನ್‌ಪುಟ್ ಬೆಂಬಲವಿಲ್ಲ.",
+  "voice.noVoiceInstalled": "ನಿಮ್ಮ ಸಾಧನದಲ್ಲಿ {language} ಧ್ವನಿ ಇಲ್ಲ, ಆದ್ದರಿಂದ ನಾನು ಇಂಗ್ಲಿಷ್‌ನಲ್ಲಿ ಮಾತನಾಡುತ್ತೇನೆ. ಪರದೆ {language} ಭಾಷೆಯಲ್ಲಿಯೇ ಇರುತ್ತದೆ.",
+
+  "home.today": "ಇಂದು",
+  "home.alerts": "ಸುರಕ್ಷತಾ ಎಚ್ಚರಿಕೆಗಳು",
+  "home.doses": "ಇಂದಿನ ಡೋಸ್‌ಗಳು",
+  "home.empty": "ಇನ್ನೂ ಏನೂ ನಿಗದಿಯಾಗಿಲ್ಲ. ಔಷಧಿಯನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ ಪ್ರಾರಂಭಿಸಿ.",
+  "home.scanCta": "ಔಷಧಿ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
+  "home.taken": "ತೆಗೆದುಕೊಂಡೆ",
+  "home.skip": "ಬಿಟ್ಟುಬಿಡಿ",
+  "home.expiring": "ಶೀಘ್ರದಲ್ಲೇ ಅವಧಿ ಮುಗಿಯುತ್ತದೆ",
+  "home.markedTaken": "ತೆಗೆದುಕೊಂಡಿದ್ದೀರಿ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ. ಚೆನ್ನಾಗಿದೆ.",
+  "home.markedSkipped": "ಡೋಸ್ ಬಿಟ್ಟುಬಿಡಲಾಗಿದೆ.",
+  "home.saveFailed": "ಕ್ಷಮಿಸಿ, ಉಳಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  "home.hello": "ನಮಸ್ಕಾರ",
+  "status.taken": "ತೆಗೆದುಕೊಂಡಿದೆ",
+  "status.skipped": "ಬಿಟ್ಟಿದೆ",
+  "status.missed": "ತಪ್ಪಿದೆ",
+  "status.due": "ಈಗ ಸಮಯ",
+  "status.upcoming": "ಮುಂದಿನದು",
+
+  "scan.title": "ಸ್ಕ್ಯಾನ್",
+  "scan.subtitle": "ಲೇಬಲ್‌ಗೆ ಕ್ಯಾಮೆರಾ ತೋರಿಸಿ ಅಥವಾ ಫೋಟೋ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
+  "scan.medicine": "ಔಷಧಿ ಪೆಟ್ಟಿಗೆ",
+  "scan.prescription": "ಚೀಟಿ (ಪ್ರಿಸ್ಕ್ರಿಪ್ಷನ್)",
+  "scan.takePhoto": "ಫೋಟೋ ತೆಗೆಯಿರಿ",
+  "scan.uploadPhoto": "ಫೋಟೋ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
+  "scan.reading": "ಓದುತ್ತಿದ್ದೇನೆ…",
+  "scan.intro": "ಸ್ಕ್ಯಾನ್ ಪರದೆ. ಫೋಟೋ ತೆಗೆಯಲು ಕ್ಯಾಮೆರಾ ಗುಂಡಿಯನ್ನು ಒತ್ತಿ, ಅಥವಾ ಫೋನಿನಿಂದ ಫೋಟೋ ಆರಿಸಲು ಅಪ್‌ಲೋಡ್ ಗುಂಡಿಯನ್ನು ಒತ್ತಿ. ನಾನು ವಿವರಗಳನ್ನು ಓದಿ ಹೇಳುತ್ತೇನೆ.",
+  "scan.ready": "ಸಿದ್ಧವಾಗಿದೆ. ಒಳ್ಳೆಯ ಬೆಳಕಿನಲ್ಲಿ ಪ್ಯಾಕ್ ಅನ್ನು ಸ್ಥಿರವಾಗಿ ಹಿಡಿಯಿರಿ.",
+  "scan.readingMedicine": "ನಿಮ್ಮ ಔಷಧಿ ಲೇಬಲ್ ಓದುತ್ತಿದ್ದೇನೆ. ದಯವಿಟ್ಟು ಕಾಯಿರಿ.",
+  "scan.readingPrescription": "ನಿಮ್ಮ ಚೀಟಿಯನ್ನು ಓದುತ್ತಿದ್ದೇನೆ. ದಯವಿಟ್ಟು ಕಾಯಿರಿ.",
+  "scan.notAnImage": "ಆ ಕಡತ ಫೋಟೋ ಅಲ್ಲ. ದಯವಿಟ್ಟು ಚಿತ್ರವನ್ನು ಆರಿಸಿ.",
+  "scan.photoChosen": "ಫೋಟೋ ಆಯ್ಕೆಯಾಗಿದೆ. ಈಗ ಓದುತ್ತಿದ್ದೇನೆ.",
+  "scan.failed": "ಆ ಫೋಟೋ ಓದಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  "scan.whatIRead": "ನಾನು ಓದಿದ್ದು",
+  "scan.notReadable": "ಓದಲಾಗಲಿಲ್ಲ",
+  "scan.times": "ನೆನಪಿನ ಸಮಯಗಳು (24 ಗಂಟೆ, ಅಲ್ಪವಿರಾಮದಿಂದ ಬೇರ್ಪಡಿಸಿ)",
+  "scan.saveMedicine": "ಔಷಧಿ ಮತ್ತು ನೆನಪುಗಳನ್ನು ಉಳಿಸಿ",
+  "scan.medicinesFound": "ಸಿಕ್ಕ ಔಷಧಿಗಳು",
+  "scan.noMedicines": "ಯಾವ ಔಷಧಿಯೂ ಓದಲಾಗಲಿಲ್ಲ. ಬೇರೆ ಫೋಟೋ ಪ್ರಯತ್ನಿಸಿ.",
+  "scan.saveAll": "ಎಲ್ಲವನ್ನೂ ಉಳಿಸಿ ವೇಳಾಪಟ್ಟಿ ಮಾಡಿ",
+  "scan.saveFailed": "ಉಳಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  "scan.field.name": "ಹೆಸರು",
+  "scan.field.strength": "ಪ್ರಮಾಣ",
+  "scan.field.form": "ರೂಪ",
+  "scan.field.dose": "ಡೋಸ್",
+  "scan.field.expiry": "ಅವಧಿ ಮುಕ್ತಾಯ",
+  "scan.field.instructions": "ಸೂಚನೆಗಳು",
+
+  "schedule.title": "ನನ್ನ ವೇಳಾಪಟ್ಟಿ",
+  "schedule.count": "{count} ಔಷಧಿಗಳು ಉಳಿಸಲಾಗಿದೆ",
+  "schedule.empty": "ಇನ್ನೂ ಏನೂ ಉಳಿಸಿಲ್ಲ. ಸ್ಕ್ಯಾನ್ ಟ್ಯಾಬ್ ಬಳಸಿ ಮೊದಲ ಔಷಧಿ ಸೇರಿಸಿ.",
+  "schedule.noDetails": "ವಿವರಗಳಿಲ್ಲ",
+  "schedule.noReminders": "ನೆನಪುಗಳಿಲ್ಲ",
+  "schedule.turnOff": "ನೆನಪುಗಳನ್ನು ಆಫ್ ಮಾಡಿ",
+
+  "assistant.title": "ಧ್ವನಿ ಸಹಾಯಕ",
+  "assistant.subtitle": "ನಿಮ್ಮ ಔಷಧಿಗಳ ಬಗ್ಗೆ ಕೇಳಿ",
+  "assistant.intro": "ಧ್ವನಿ ಸಹಾಯಕ. ಮೈಕ್ ಒತ್ತಿ ನಿಮ್ಮ ಔಷಧಿಗಳ ಬಗ್ಗೆ ಏನಾದರೂ ಕೇಳಿ.",
+  "assistant.tapSpeak": "ಒತ್ತಿ ಮಾತನಾಡಿ",
+  "assistant.tapFinish": "ಮುಗಿದ ಮೇಲೆ ಒತ್ತಿ",
+  "assistant.type": "ಅಥವಾ ನಿಮ್ಮ ಪ್ರಶ್ನೆ ಬರೆಯಿರಿ",
+  "assistant.send": "ಪ್ರಶ್ನೆ ಕಳುಹಿಸಿ",
+  "assistant.you": "ನೀವು",
+  "assistant.failed": "ಕ್ಷಮಿಸಿ, ಈಗ ಉತ್ತರಿಸಲಾಗಲಿಲ್ಲ.",
+  "assistant.q1": "ಮುಂದೆ ಯಾವ ಔಷಧಿ ತೆಗೆದುಕೊಳ್ಳಬೇಕು?",
+  "assistant.q2": "ಬೆಳಗಿನ ಔಷಧಿ ತೆಗೆದುಕೊಂಡಿದ್ದೇನೆಯೇ?",
+  "assistant.q3": "ಯಾವ ಔಷಧಿ ಶೀಘ್ರದಲ್ಲಿ ಮುಗಿಯುತ್ತದೆ?",
+  "assistant.q4": "ಇಂದು ಎಷ್ಟು ಡೋಸ್ ಬಾಕಿ ಇದೆ?",
+
+  "more.title": "ಇನ್ನಷ್ಟು",
+  "more.subtitle": "ಭಾಷೆ, ಧ್ವನಿ, ಸುರಕ್ಷತೆ, ಆರೈಕೆದಾರರು",
+  "more.language": "ಭಾಷೆ",
+  "more.languageHelp": "ಪರದೆ ಮತ್ತು ಧ್ವನಿಗೆ ಭಾಷೆಯನ್ನು ಆರಿಸಿ.",
+  "more.voice": "ಧ್ವನಿ",
+  "more.speakAll": "ಎಲ್ಲವನ್ನೂ ಗಟ್ಟಿಯಾಗಿ ಹೇಳಿ",
+  "more.speed": "ಮಾತಿನ ವೇಗ: {rate}x",
+  "more.speedDemo": "ನಾನು ಈ ವೇಗದಲ್ಲಿ ಮಾತನಾಡುತ್ತೇನೆ.",
+  "more.voiceOn": "ಧ್ವನಿ ಆನ್ ಆಗಿದೆ.",
+  "more.safety": "ಸುರಕ್ಷತಾ ಪರಿಶೀಲನೆ",
+  "more.safetyHelp": "ಪರಸ್ಪರ ಪ್ರತಿಕ್ರಿಯೆ, ಪುನರಾವರ್ತನೆ ಮತ್ತು ಅವಧಿ ಮುಕ್ತಾಯ ಸಮಸ್ಯೆಗಳನ್ನು ಹುಡುಕುತ್ತದೆ. ಯಾವಾಗಲೂ ವೈದ್ಯರು ಅಥವಾ ಔಷಧಿಕಾರರನ್ನು ಕೇಳಿ.",
+  "more.checkMeds": "ನನ್ನ ಔಷಧಿಗಳನ್ನು ಪರಿಶೀಲಿಸಿ",
+  "more.checking": "ನಿಮ್ಮ ಔಷಧಿಗಳ ಸುರಕ್ಷತೆಯನ್ನು ಪರಿಶೀಲಿಸುತ್ತಿದ್ದೇನೆ.",
+  "more.checkFailed": "ಸುರಕ್ಷತಾ ಪರಿಶೀಲನೆ ವಿಫಲವಾಯಿತು. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  "more.markRead": "ಓದಿದೆ ಎಂದು ಗುರುತಿಸಿ",
+  "more.caregivers": "ಆರೈಕೆದಾರರು",
+  "more.caregiverName": "ಆರೈಕೆದಾರರ ಹೆಸರು",
+  "more.relationship": "ಸಂಬಂಧ",
+  "more.phone": "ದೂರವಾಣಿ ಸಂಖ್ಯೆ",
+  "more.addCaregiver": "ಆರೈಕೆದಾರರನ್ನು ಸೇರಿಸಿ",
+  "more.emergencyContact": "ತುರ್ತು ಸಂಪರ್ಕ",
+  "more.currently": "ಈಗ",
+  "more.notSet": "ಹೊಂದಿಸಿಲ್ಲ",
+  "more.name": "ಹೆಸರು",
+  "more.saveContact": "ತುರ್ತು ಸಂಪರ್ಕ ಉಳಿಸಿ",
+  "more.contactSaved": "ತುರ್ತು ಸಂಪರ್ಕ ಉಳಿಸಲಾಗಿದೆ.",
+  "more.signOut": "ಸೈನ್ ಔಟ್",
+
+  "emergency.title": "ತುರ್ತು",
+  "emergency.subtitle": "ಸಹಾಯ ಒಂದು ಒತ್ತು ದೂರ",
+  "emergency.intro": "ತುರ್ತು ಪರದೆ. ದೊಡ್ಡ ಕೆಂಪು ಗುಂಡಿಯನ್ನು ಒತ್ತಿ ನಿಮ್ಮ ತುರ್ತು ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡಿ.",
+  "emergency.call": "{name} ಗೆ ಕರೆ ಮಾಡಿ",
+  "emergency.noContact": "ಸಂಪರ್ಕ ಉಳಿಸಿಲ್ಲ",
+  "emergency.dial": "ಇದು ತಕ್ಷಣ {phone} ಗೆ ಕರೆ ಮಾಡುತ್ತದೆ.",
+  "emergency.addContact": "ಈ ಗುಂಡಿ ಸಹಾಯಕ್ಕೆ ಕರೆ ಮಾಡಲು 'ಇನ್ನಷ್ಟು' ಟ್ಯಾಬ್‌ನಲ್ಲಿ ತುರ್ತು ಸಂಪರ್ಕ ಸೇರಿಸಿ.",
+  "emergency.calling": "{name} ಗೆ ಕರೆ ಮಾಡುತ್ತಿದ್ದೇನೆ.",
+  "emergency.noContactSpoken": "ಇನ್ನೂ ತುರ್ತು ಸಂಪರ್ಕ ಉಳಿಸಿಲ್ಲ. ದಯವಿಟ್ಟು 'ಇನ್ನಷ್ಟು' ಟ್ಯಾಬ್‌ನಲ್ಲಿ ಸೇರಿಸಿ.",
+};
+
+const hi: Dict = {
+  "app.name": "स्मार्टमेडिकेयर",
+  "nav.home": "होम",
+  "nav.scan": "स्कैन",
+  "nav.schedule": "समय-सारणी",
+  "nav.assistant": "आवाज़",
+  "nav.more": "और",
+  "nav.emergency": "आपातकाल",
+  "common.repeat": "फिर से बोलें",
+  "common.save": "सहेजें",
+  "common.delete": "हटाएँ",
+  "common.on": "चालू",
+  "common.off": "बंद",
+  "common.listening": "सुन रहा हूँ…",
+  "common.thinking": "सोच रहा हूँ…",
+  "common.readAloud": "यह पृष्ठ पढ़कर सुनाएँ",
+  "voice.mic": "आवाज़ आदेश",
+  "voice.tapAndSpeak": "दबाकर आदेश बोलें",
+  "voice.heard": "मैंने सुना: {text}",
+  "voice.unknown": "क्षमा करें, समझ नहीं आया। आप कह सकते हैं: होम, स्कैन, समय-सारणी, सहायक, सेटिंग्स, आपातकाल, फोटो लो, फोटो अपलोड, सहेजें, पृष्ठ पढ़ो, फिर से बोलो।",
+  "voice.help": "आप कह सकते हैं: होम, स्कैन, समय-सारणी, सहायक, सेटिंग्स, आपातकाल, फोटो लो, फोटो अपलोड, सहेजें, ले लिया, पृष्ठ पढ़ो, फिर से बोलो, रुको।",
+  "voice.langChanged": "भाषा हिंदी में बदल गई।",
+  "voice.notSupported": "इस ब्राउज़र में आवाज़ इनपुट उपलब्ध नहीं है।",
+  "voice.noVoiceInstalled": "आपके फ़ोन में {language} बोलने वाली आवाज़ नहीं है, इसलिए मैं अंग्रेज़ी में बोलूँगा। स्क्रीन {language} में ही रहेगी।",
+
+  "home.today": "आज",
+  "home.alerts": "सुरक्षा चेतावनियाँ",
+  "home.doses": "आज की खुराक",
+  "home.empty": "अभी कुछ तय नहीं है। शुरू करने के लिए दवा स्कैन करें।",
+  "home.scanCta": "दवा स्कैन करें",
+  "home.taken": "ले लिया",
+  "home.skip": "छोड़ें",
+  "home.expiring": "जल्दी समाप्त हो रही",
+  "home.markedTaken": "ले ली गई के रूप में दर्ज। बहुत बढ़िया।",
+  "home.markedSkipped": "खुराक छोड़ दी गई।",
+  "home.saveFailed": "क्षमा करें, सहेजा नहीं जा सका। फिर कोशिश करें।",
+  "home.hello": "नमस्ते",
+  "status.taken": "ले ली",
+  "status.skipped": "छोड़ी",
+  "status.missed": "छूटी",
+  "status.due": "अभी लेनी है",
+  "status.upcoming": "आगे",
+
+  "scan.title": "स्कैन",
+  "scan.subtitle": "लेबल पर कैमरा रखें या फोटो अपलोड करें",
+  "scan.medicine": "दवा का डिब्बा",
+  "scan.prescription": "पर्चा",
+  "scan.takePhoto": "फोटो लें",
+  "scan.uploadPhoto": "फोटो अपलोड करें",
+  "scan.reading": "पढ़ रहा हूँ…",
+  "scan.intro": "स्कैन स्क्रीन। फोटो लेने के लिए कैमरा बटन दबाएँ, या फ़ोन से फोटो चुनने के लिए अपलोड बटन दबाएँ। मैं विवरण पढ़कर सुनाऊँगा।",
+  "scan.ready": "तैयार हूँ। अच्छी रोशनी में पैक को स्थिर पकड़ें।",
+  "scan.readingMedicine": "आपकी दवा का लेबल पढ़ रहा हूँ। कृपया रुकें।",
+  "scan.readingPrescription": "आपका पर्चा पढ़ रहा हूँ। कृपया रुकें।",
+  "scan.notAnImage": "यह फ़ाइल फोटो नहीं है। कृपया कोई तस्वीर चुनें।",
+  "scan.photoChosen": "फोटो चुन ली गई। अब पढ़ रहा हूँ।",
+  "scan.failed": "वह फोटो पढ़ी नहीं जा सकी। कृपया फिर कोशिश करें।",
+  "scan.whatIRead": "मैंने जो पढ़ा",
+  "scan.notReadable": "पढ़ा नहीं जा सका",
+  "scan.times": "याद दिलाने के समय (24 घंटे, अल्पविराम से अलग)",
+  "scan.saveMedicine": "दवा और रिमाइंडर सहेजें",
+  "scan.medicinesFound": "मिली दवाएँ",
+  "scan.noMedicines": "कोई दवा पढ़ी नहीं जा सकी। दूसरी फोटो लें।",
+  "scan.saveAll": "सब सहेजें और समय बनाएँ",
+  "scan.saveFailed": "सहेजना विफल रहा। फिर कोशिश करें।",
+  "scan.field.name": "नाम",
+  "scan.field.strength": "शक्ति",
+  "scan.field.form": "रूप",
+  "scan.field.dose": "खुराक",
+  "scan.field.expiry": "समाप्ति",
+  "scan.field.instructions": "निर्देश",
+
+  "schedule.title": "मेरी समय-सारणी",
+  "schedule.count": "{count} दवाएँ सहेजी गईं",
+  "schedule.empty": "अभी कुछ सहेजा नहीं है। पहली दवा जोड़ने के लिए स्कैन टैब का उपयोग करें।",
+  "schedule.noDetails": "कोई विवरण नहीं",
+  "schedule.noReminders": "कोई रिमाइंडर नहीं",
+  "schedule.turnOff": "रिमाइंडर बंद करें",
+
+  "assistant.title": "आवाज़ सहायक",
+  "assistant.subtitle": "अपनी दवाओं के बारे में पूछें",
+  "assistant.intro": "आवाज़ सहायक। माइक दबाएँ और अपनी दवाओं के बारे में कुछ भी पूछें।",
+  "assistant.tapSpeak": "दबाएँ और बोलें",
+  "assistant.tapFinish": "पूरा होने पर दबाएँ",
+  "assistant.type": "या अपना प्रश्न लिखें",
+  "assistant.send": "प्रश्न भेजें",
+  "assistant.you": "आप",
+  "assistant.failed": "क्षमा करें, अभी उत्तर नहीं दे सका।",
+  "assistant.q1": "अगली दवा कौन सी लेनी है?",
+  "assistant.q2": "क्या मैंने सुबह की दवा ली?",
+  "assistant.q3": "कौन सी दवा जल्दी समाप्त हो रही है?",
+  "assistant.q4": "आज कितनी खुराक बाकी हैं?",
+
+  "more.title": "और",
+  "more.subtitle": "भाषा, आवाज़, सुरक्षा, देखभालकर्ता",
+  "more.language": "भाषा",
+  "more.languageHelp": "स्क्रीन और आवाज़ के लिए भाषा चुनें।",
+  "more.voice": "आवाज़",
+  "more.speakAll": "सब कुछ बोलकर सुनाएँ",
+  "more.speed": "बोलने की गति: {rate}x",
+  "more.speedDemo": "मैं इतनी तेज़ी से बोलूँगा।",
+  "more.voiceOn": "आवाज़ चालू हो गई।",
+  "more.safety": "सुरक्षा जाँच",
+  "more.safetyHelp": "परस्पर प्रभाव, दोहराव और समाप्ति की समस्याएँ देखता है। हमेशा डॉक्टर या फार्मासिस्ट से पुष्टि करें।",
+  "more.checkMeds": "मेरी दवाएँ जाँचें",
+  "more.checking": "आपकी दवाओं की सुरक्षा जाँच रहा हूँ।",
+  "more.checkFailed": "सुरक्षा जाँच विफल रही। फिर कोशिश करें।",
+  "more.markRead": "पढ़ा हुआ चिह्नित करें",
+  "more.caregivers": "देखभालकर्ता",
+  "more.caregiverName": "देखभालकर्ता का नाम",
+  "more.relationship": "रिश्ता",
+  "more.phone": "फ़ोन नंबर",
+  "more.addCaregiver": "देखभालकर्ता जोड़ें",
+  "more.emergencyContact": "आपातकालीन संपर्क",
+  "more.currently": "अभी",
+  "more.notSet": "तय नहीं",
+  "more.name": "नाम",
+  "more.saveContact": "आपातकालीन संपर्क सहेजें",
+  "more.contactSaved": "आपातकालीन संपर्क सहेज लिया गया।",
+  "more.signOut": "साइन आउट",
+
+  "emergency.title": "आपातकाल",
+  "emergency.subtitle": "मदद एक टैप दूर है",
+  "emergency.intro": "आपातकालीन स्क्रीन। अपने आपातकालीन संपर्क को कॉल करने के लिए बड़ा लाल बटन दबाएँ।",
+  "emergency.call": "{name} को कॉल करें",
+  "emergency.noContact": "कोई संपर्क सहेजा नहीं",
+  "emergency.dial": "यह तुरंत {phone} पर कॉल करेगा।",
+  "emergency.addContact": "यह बटन मदद बुला सके इसके लिए 'और' टैब में आपातकालीन संपर्क जोड़ें।",
+  "emergency.calling": "{name} को कॉल कर रहा हूँ।",
+  "emergency.noContactSpoken": "अभी कोई आपातकालीन संपर्क सहेजा नहीं है। कृपया 'और' टैब में जोड़ें।",
+};
+
+const DICTS: Record<Lang, Dict> = { en, kn, hi };
+
+type I18nValue = {
+  lang: Lang;
+  setLang: (lang: Lang) => void;
+  locale: string;
+  aiLanguage: string;
+  languageLabel: string;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+};
+
+const I18nContext = createContext<I18nValue | null>(null);
+
+function format(template: string, vars?: Record<string, string | number>) {
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (_m, key: string) => String(vars[key] ?? ""));
+}
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [lang, setLangState] = useState<Lang>("en");
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY) as Lang | null;
+      if (stored && stored in DICTS) setLangState(stored);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const setLang = useCallback((next: Lang) => {
+    setLangState(next);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      /* ignore */
+    }
+    if (typeof document !== "undefined") document.documentElement.lang = next;
+  }, []);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") document.documentElement.lang = lang;
+  }, [lang]);
+
+  const value = useMemo<I18nValue>(() => {
+    const meta = LANGUAGES.find((l) => l.code === lang) ?? LANGUAGES[0];
+    return {
+      lang,
+      setLang,
+      locale: meta.locale,
+      aiLanguage: meta.aiName,
+      languageLabel: meta.label,
+      t: (key, vars) => format(DICTS[lang][key] ?? DICTS.en[key] ?? key, vars),
+    };
+  }, [lang, setLang]);
+
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+}
+
+export function useI18n() {
+  const ctx = useContext(I18nContext);
+  if (!ctx) throw new Error("useI18n must be used inside LanguageProvider");
+  return ctx;
+}
