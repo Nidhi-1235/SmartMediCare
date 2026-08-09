@@ -4,6 +4,7 @@ import { PhoneCall, Siren } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { useSpeech, useSpokenIntro } from "@/lib/speech";
+import { useI18n } from "@/lib/i18n";
 import { caregiversQuery, logEmergency, profileQuery } from "@/lib/db";
 
 export const Route = createFileRoute("/_authenticated/emergency")({
@@ -22,11 +23,12 @@ export const Route = createFileRoute("/_authenticated/emergency")({
 
 function EmergencyPage() {
   const { speak } = useSpeech();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const profile = useQuery(profileQuery);
   const caregivers = useQuery(caregiversQuery);
 
-  useSpokenIntro("Emergency screen. Tap the big red button to call your emergency contact.");
+  useSpokenIntro(t("emergency.intro"));
 
   const record = useMutation({
     mutationFn: async (contact: string | null) => logEmergency({ kind: "sos", contact_notified: contact }),
@@ -39,15 +41,15 @@ function EmergencyPage() {
   function call(phone: string | null, name: string | null) {
     record.mutate(name ?? phone);
     if (phone) {
-      speak(`Calling ${name ?? phone}.`);
+      speak(t("emergency.calling", { name: name ?? phone }));
       window.location.href = `tel:${phone}`;
     } else {
-      speak("No emergency contact saved yet. Please add one in the More tab.");
+      speak(t("emergency.noContactSpoken"));
     }
   }
 
   return (
-    <AppShell title="Emergency" subtitle="Help is one tap away">
+    <AppShell title={t("emergency.title")} subtitle={t("emergency.subtitle")}>
       <Button
         onClick={() => call(primaryPhone, primaryName)}
         variant="destructive"
@@ -55,19 +57,19 @@ function EmergencyPage() {
         aria-label={primaryName ? `Call ${primaryName} now` : "No emergency contact saved"}
       >
         <Siren aria-hidden="true" className="size-16" />
-        {primaryName ? `Call ${primaryName}` : "No contact saved"}
+        {primaryName ? t("emergency.call", { name: primaryName }) : t("emergency.noContact")}
       </Button>
 
       <p className="mt-4 text-lg text-muted-foreground">
         {primaryPhone
-          ? `This will dial ${primaryPhone} straight away.`
-          : "Add an emergency contact in the More tab so this button can call for help."}
+          ? t("emergency.dial", { phone: primaryPhone })
+          : t("emergency.addContact")}
       </p>
 
       {(caregivers.data ?? []).length ? (
         <section aria-labelledby="caregiver-calls" className="mt-8">
           <h2 id="caregiver-calls" className="text-lg font-bold text-foreground">
-            Caregivers
+            {t("more.caregivers")}
           </h2>
           <ul className="mt-3 space-y-3">
             {(caregivers.data ?? []).map((caregiver) => (

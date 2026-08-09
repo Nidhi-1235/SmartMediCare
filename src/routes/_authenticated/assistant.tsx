@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSpeech, useSpokenIntro } from "@/lib/speech";
+import { useI18n } from "@/lib/i18n";
 import { useSpeechRecognition } from "@/lib/use-speech-recognition";
 import { doseLogsQuery, medicinesQuery, schedulesQuery } from "@/lib/db";
 import { buildTodayDoses, friendlyTime } from "@/lib/dose-utils";
@@ -27,15 +28,9 @@ export const Route = createFileRoute("/_authenticated/assistant")({
 
 type Turn = { role: "you" | "assistant"; text: string };
 
-const SUGGESTIONS = [
-  "What do I take next?",
-  "Did I take my morning medicine?",
-  "Which medicine expires soon?",
-  "How many doses are left today?",
-];
-
 function AssistantPage() {
   const { speak, lang } = useSpeech();
+  const { t, aiLanguage } = useI18n();
   const recognition = useSpeechRecognition(lang);
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -45,7 +40,7 @@ function AssistantPage() {
   const schedules = useQuery(schedulesQuery);
   const logs = useQuery(doseLogsQuery);
 
-  useSpokenIntro("Voice assistant. Tap the microphone and ask me anything about your medicines.");
+  useSpokenIntro(t("assistant.intro"));
 
   const contextText = useMemo(() => {
     const doses = buildTodayDoses(medicines.data ?? [], schedules.data ?? [], logs.data ?? []);
@@ -66,11 +61,11 @@ function AssistantPage() {
     recognition.setTranscript("");
     setBusy(true);
     try {
-      const { answer } = await askAssistant({ data: { question: trimmed, contextText } });
+      const { answer } = await askAssistant({ data: { question: trimmed, contextText, language: aiLanguage } });
       setTurns((prev) => [...prev, { role: "assistant", text: answer }]);
       speak(answer);
     } catch (error) {
-      const text2 = error instanceof Error ? error.message : "Sorry, I could not answer that right now.";
+      const text2 = error instanceof Error ? error.message : t("assistant.failed");
       setTurns((prev) => [...prev, { role: "assistant", text: text2 }]);
       speak(text2);
     } finally {
@@ -84,12 +79,12 @@ function AssistantPage() {
       if (recognition.transcript.trim()) void ask(recognition.transcript);
       return;
     }
-    speak("Listening.");
+    speak(t("common.listening"));
     window.setTimeout(() => recognition.start(), 600);
   }
 
   return (
-    <AppShell title="Voice assistant" subtitle="Ask about your medicines">
+    <AppShell title={t("assistant.title")} subtitle={t("assistant.subtitle")}>
       <Button
         type="button"
         onClick={toggleMic}
@@ -106,11 +101,11 @@ function AssistantPage() {
         ) : (
           <Mic aria-hidden="true" className="size-14" />
         )}
-        {busy ? "Thinking…" : recognition.listening ? "Tap when finished" : "Tap and speak"}
+        {busy ? t("common.thinking") : recognition.listening ? t("assistant.tapFinish") : t("assistant.tapSpeak")}
       </Button>
 
       <p role="status" aria-live="polite" className="mt-4 min-h-12 text-lg font-medium text-foreground">
-        {recognition.error ?? (recognition.listening ? recognition.transcript || "Listening…" : "")}
+        {recognition.error ?? (recognition.listening ? recognition.transcript || t("common.listening") : "")}
       </p>
 
       <form
@@ -127,7 +122,7 @@ function AssistantPage() {
           id="question"
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          placeholder="Or type your question"
+          placeholder={t("assistant.type")}
           className="tap-target text-lg"
         />
         <Button type="submit" disabled={busy} aria-label="Send question" className="tap-target size-14 shrink-0 p-0">
@@ -136,7 +131,7 @@ function AssistantPage() {
       </form>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {SUGGESTIONS.map((suggestion) => (
+        {[t("assistant.q1"), t("assistant.q2"), t("assistant.q3"), t("assistant.q4")].map((suggestion) => (
           <button
             key={suggestion}
             type="button"
@@ -157,7 +152,7 @@ function AssistantPage() {
             }`}
           >
             <p className="text-sm font-bold uppercase tracking-wide opacity-70">
-              {turn.role === "you" ? "You" : "SmartMediCare"}
+              {turn.role === "you" ? t("assistant.you") : t("app.name")}
             </p>
             <p className="mt-1 text-lg font-medium leading-snug">{turn.text}</p>
             {turn.role === "assistant" ? (

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useSpeech } from "@/lib/speech";
+import { LANGUAGES, useI18n } from "@/lib/i18n";
 import {
   acknowledgeAlert,
   alertsQuery,
@@ -42,6 +43,7 @@ function MorePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { speak, enabled, setEnabled, rate, setRate } = useSpeech();
+  const { t, lang, setLang, aiLanguage } = useI18n();
 
   const profile = useQuery(profileQuery);
   const caregivers = useQuery(caregiversQuery);
@@ -76,7 +78,7 @@ function MorePage() {
       saveProfile({ emergency_contact_name: contactName, emergency_contact_phone: contactPhone }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
-      speak("Emergency contact saved.");
+      speak(t("more.contactSaved"));
     },
   });
 
@@ -87,7 +89,7 @@ function MorePage() {
 
   async function checkSafety() {
     setChecking(true);
-    speak("Checking your medicines for safety issues.");
+    speak(t("more.checking"));
     try {
       const result = await runSafetyCheck({
         data: {
@@ -96,13 +98,14 @@ function MorePage() {
             dosage: m.dosage,
             expiry_date: m.expiry_date,
           })),
+          language: aiLanguage,
         },
       });
       await replaceAlerts(result.alerts);
       queryClient.invalidateQueries({ queryKey: ["safety_alerts"] });
       speak(result.spoken_summary || `Found ${result.alerts.length} issues.`);
     } catch (error) {
-      speak(error instanceof Error ? error.message : "The safety check failed. Please try again.");
+      speak(error instanceof Error ? error.message : t("more.checkFailed"));
     } finally {
       setChecking(false);
     }
@@ -118,28 +121,53 @@ function MorePage() {
   const openAlerts = (alerts.data ?? []).filter((a) => !a.acknowledged);
 
   return (
-    <AppShell title="More" subtitle="Voice, safety, caregivers">
-      <section aria-labelledby="voice-heading" className="rounded-3xl border-2 border-border bg-card p-5">
+    <AppShell title={t("more.title")} subtitle={t("more.subtitle")}>
+      <section aria-labelledby="language-heading" className="rounded-3xl border-2 border-border bg-card p-5">
+        <h2 id="language-heading" className="text-xl font-bold text-foreground">
+          {t("more.language")}
+        </h2>
+        <p className="mt-1 text-base text-muted-foreground">{t("more.languageHelp")}</p>
+        <div className="mt-4 grid gap-3" role="radiogroup" aria-labelledby="language-heading">
+          {LANGUAGES.map((option) => (
+            <Button
+              key={option.code}
+              role="radio"
+              aria-checked={lang === option.code}
+              variant={lang === option.code ? "default" : "outline"}
+              onClick={() => {
+                setLang(option.code);
+                window.setTimeout(() => speak(option.label), 250);
+              }}
+              onFocus={() => speak(option.label)}
+              className="tap-target w-full border-2 text-lg font-bold"
+            >
+              {option.label} · {option.english}
+            </Button>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="voice-heading" className="mt-6 rounded-3xl border-2 border-border bg-card p-5">
         <h2 id="voice-heading" className="text-xl font-bold text-foreground">
-          Voice
+          {t("more.voice")}
         </h2>
         <div className="mt-4 flex items-center justify-between gap-4">
-          <span className="text-lg font-semibold text-foreground">Speak everything aloud</span>
+          <span className="text-lg font-semibold text-foreground">{t("more.speakAll")}</span>
           <Button
             variant={enabled ? "default" : "outline"}
             onClick={() => {
               setEnabled(!enabled);
-              if (!enabled) speak("Voice turned on.");
+              if (!enabled) speak(t("more.voiceOn"));
             }}
             aria-pressed={enabled}
             className="tap-target border-2 text-base font-bold"
           >
-            {enabled ? "On" : "Off"}
+            {enabled ? t("common.on") : t("common.off")}
           </Button>
         </div>
         <div className="mt-5 space-y-2">
           <Label htmlFor="rate" className="text-base font-semibold">
-            Speaking speed: {rate.toFixed(1)}x
+            {t("more.speed", { rate: rate.toFixed(1) })}
           </Label>
           <input
             id="rate"
@@ -149,8 +177,8 @@ function MorePage() {
             step={0.1}
             value={rate}
             onChange={(event) => setRate(Number(event.target.value))}
-            onMouseUp={() => speak("This is how fast I will speak.")}
-            onTouchEnd={() => speak("This is how fast I will speak.")}
+            onMouseUp={() => speak(t("more.speedDemo"))}
+            onTouchEnd={() => speak(t("more.speedDemo"))}
             className="h-3 w-full accent-[var(--color-primary)]"
           />
         </div>
@@ -158,7 +186,7 @@ function MorePage() {
 
       <section aria-labelledby="safety-heading" className="mt-6 rounded-3xl border-2 border-border bg-card p-5">
         <h2 id="safety-heading" className="text-xl font-bold text-foreground">
-          Safety check
+          {t("more.safety")}
         </h2>
         <p className="mt-1 text-base text-muted-foreground">
           Looks for interactions, duplicates and expiry problems. Always confirm with your doctor or pharmacist.
@@ -179,7 +207,7 @@ function MorePage() {
                   onClick={() => ackAlert.mutate(alert.id)}
                   className="tap-target mt-3 border-2 text-base font-bold"
                 >
-                  Mark as read
+                  {t("more.markRead")}
                 </Button>
               </li>
             ))}
@@ -189,7 +217,7 @@ function MorePage() {
 
       <section aria-labelledby="caregivers-heading" className="mt-6 rounded-3xl border-2 border-border bg-card p-5">
         <h2 id="caregivers-heading" className="text-xl font-bold text-foreground">
-          Caregivers
+          {t("more.caregivers")}
         </h2>
         <ul className="mt-3 space-y-2">
           {(caregivers.data ?? []).map((caregiver) => (
@@ -249,14 +277,14 @@ function MorePage() {
             />
           </div>
           <Button type="submit" className="tap-target w-full text-lg font-bold">
-            Add caregiver
+            {t("more.addCaregiver")}
           </Button>
         </form>
       </section>
 
       <section aria-labelledby="contact-heading" className="mt-6 rounded-3xl border-2 border-border bg-card p-5">
         <h2 id="contact-heading" className="text-xl font-bold text-foreground">
-          Emergency contact
+          {t("more.emergencyContact")}
         </h2>
         <p className="mt-1 text-base text-muted-foreground">
           Currently: {profile.data?.emergency_contact_name || "not set"}{" "}
@@ -293,14 +321,14 @@ function MorePage() {
             />
           </div>
           <Button type="submit" className="tap-target w-full text-lg font-bold">
-            Save emergency contact
+            {t("more.saveContact")}
           </Button>
         </form>
       </section>
 
       <Button variant="outline" onClick={signOut} className="tap-target mt-6 w-full border-2 text-lg font-bold">
         <LogOut aria-hidden="true" className="size-5" />
-        Sign out
+        {t("more.signOut")}
       </Button>
     </AppShell>
   );
