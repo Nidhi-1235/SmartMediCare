@@ -1,54 +1,36 @@
-## SmartMediCare — Assistive Medicine App
+# Multi-language voice app: English, Kannada, Hindi + photo upload
 
-An installable, accessibility-first mobile app for visually impaired users to manage medication independently. Built as a phone-shaped web app with home-screen install support, large touch targets, high contrast, screen-reader labels, and voice-first interaction.
+Three additions on top of the existing SmartMediCare app: pick a language and have the whole app speak and read in it, upload photos from the gallery (not just live camera), and make every screen operable by voice.
 
-### Backend (Lovable Cloud)
-Enable Cloud for accounts, database, storage, and AI. Email + Google sign-in, with profiles.
+## 1. Language (English / ಕನ್ನಡ / हिंदी)
 
-Tables (all with row-level security so users only see their own data):
-- `profiles` — name, language, voice speed, high-contrast preference, emergency contact
-- `medicines` — name, dosage, form, expiry date, instructions, photo, scan text
-- `schedules` — medicine, times of day, days, start/end date, active
-- `dose_logs` — taken / missed / snoozed with timestamp
-- `prescriptions` — uploaded image, extracted text, generated schedule status
-- `caregivers` — linked caregiver/family contacts with permission level
-- `interaction_alerts` — detected drug-interaction and dosage warnings
-- `emergency_events` — SOS triggers with time and contact notified
+- Language picker on the Settings ("More") screen and on first sign-in, with each option spoken aloud as it is focused. Choice is saved to the user's profile (the `language` field already exists) and cached on the device so it applies before the profile loads.
+- A translation dictionary covers all fixed UI text: navigation labels, headings, buttons, status lines, error and confirmation messages, and the emergency screen.
+- Speech output switches voice locale with the language: `en-US`, `kn-IN`, `hi-IN`. If the phone has no installed voice for Kannada or Hindi, the app says so once in the chosen language and falls back to English speech while keeping on-screen text translated.
+- AI replies follow the same language: the scan, prescription, safety-check and assistant prompts are told which language to answer in, so spoken summaries and the assistant come back in Kannada or Hindi.
+- Voice input recognition locale switches too, so the user can ask questions in their language.
 
-### Screens
-1. **Onboarding / Auth** — voice-guided sign in, large buttons, Google + email
-2. **Home dashboard** — "next dose" hero card, spoken on open, quick actions: Scan, Speak, SOS
-3. **Scan medicine** — camera capture with live spoken alignment guidance, OCR text extraction, AI parsing into name / dosage / expiry / instructions, read back aloud, confirm and save
-4. **Prescription upload** — photo or file, AI extracts medicines and builds a schedule automatically for review
-5. **My medicines** — list with expiry warnings, detail view read aloud
-6. **Schedule & reminders** — daily timeline, mark taken/missed, in-app + notification reminders
-7. **Safety centre** — dosage verification, drug-interaction checks, expiry alerts, all announced by voice
-8. **Voice assistant** — hold-to-talk; speech-to-text question, AI answer, spoken back ("What do I take now?", "Is this expired?")
-9. **Caregivers & family** — invite contacts, share adherence, they get missed-dose visibility
-10. **Emergency SOS** — large always-reachable button; logs event and surfaces emergency contact with call link
-11. **Pharmacy finder** — nearby pharmacies by location with contact details
-12. **Settings** — language (multi-language UI + speech), voice speed, contrast, text size
+## 2. Photo upload
 
-### AI & device features
-- OCR + parsing of medicine labels and prescriptions via Lovable AI (vision model reads the captured photo)
-- Drug interaction and dosage checks via AI, stored as alerts
-- Speech-to-text and text-to-speech using the browser speech APIs, with a spoken-feedback layer on every screen
-- Camera access for capture and alignment guidance
+- The Scan screen gets two large buttons: "Take photo" (camera) and "Upload photo" (choose from gallery/files). Both feed the same AI reading flow, so nothing else changes.
+- Each step is announced: file chosen, reading in progress, result read aloud, saved.
+- Guardrails with spoken feedback: image files only, oversized images are downscaled before sending, unreadable photo prompts a spoken retry.
+- Prescription mode gets the same upload option.
 
-### Accessibility rules applied throughout
-Minimum 56px touch targets, semantic headings, aria-live announcements, focus order, full keyboard/screen-reader support, haptic-style confirmations, and a high-contrast theme option.
+## 3. Voice-first operation everywhere
 
-### Delivery
-Installable on phones: app manifest, icons, theme colour, and home-screen support so it launches like a native app.
+- A persistent microphone control (large, bottom of the screen, reachable from every page) starts listening and speaks what it heard back for confirmation.
+- Spoken commands, recognised in all three languages, cover: navigation ("home", "scan", "schedule", "assistant", "settings", "emergency"), actions ("take photo", "upload photo", "save", "repeat that", "mark taken", "what do I take now", "help", "stop"), and language switching ("speak Hindi").
+- Every screen announces itself on arrival and reads its main content; "repeat" replays the last message.
+- Unrecognised commands get a spoken list of what can be said on the current screen.
+- Voice on/off, speech speed, and language stay controllable from Settings, all with spoken labels.
 
-### Build order
-1. Enable Cloud, auth + profiles, database schema
-2. Design system (accessible, high-contrast, large type) + app shell with bottom nav and SOS
-3. Home, medicines, schedule, reminders, dose logging
-4. Scan + prescription upload with OCR/AI parsing
-5. Voice assistant and global speech feedback
-6. Safety centre, caregivers, emergency, pharmacy finder, settings
-7. Installability (manifest + icons)
+## Technical notes
 
-### Technical notes
-Frontend is TanStack Start with protected routes under an authenticated layout. AI and OCR calls run in server functions using Lovable AI Gateway, never in the browser. Speech APIs run client-side only. This is a web app installable to the home screen — not a Play Store/App Store native build; for your report it can be documented as a cross-platform mobile web application.
+- New `src/lib/i18n.tsx`: language context + `t()` lookup, dictionaries for `en` / `kn` / `hi`, persistence to `localStorage` and the `profiles.language` column, provider mounted in `__root.tsx` next to `SpeechProvider`.
+- `src/lib/speech.tsx`: locale driven by the i18n context; voice-availability check against `speechSynthesis.getVoices()` with English fallback.
+- `src/lib/use-speech-recognition.ts`: accept locale from context; existing API unchanged.
+- New `src/lib/voice-commands.ts`: per-language phrase tables mapped to intents, plus a matcher tolerant of extra words. A `VoiceCommandBar` component in the app shell wires intents to router navigation and screen-local handlers.
+- `src/lib/smc.functions.ts` / `ai.server.ts`: add a `language` input to the four AI server functions and append a "reply in <language>" instruction to each prompt. No schema change needed.
+- `src/routes/_authenticated/scan.tsx`: second hidden file input without `capture`, shared `handleFile` path, client-side downscale via canvas before building the data URL.
+- All existing screens swap hardcoded strings for `t()` keys; no layout or design-system changes.
