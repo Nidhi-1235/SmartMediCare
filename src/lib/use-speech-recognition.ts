@@ -21,6 +21,56 @@ function getRecognitionCtor(): (new () => Recognition) | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+/** True when this browser can turn speech into text. */
+export function recognitionSupported() {
+  return getRecognitionCtor() !== null;
+}
+
+/**
+ * Listens for exactly one spoken answer and resolves with it.
+ * Used by the spoken alarm setup, which asks a question and waits for a reply.
+ */
+export function listenOnce(lang = "en-US", timeoutMs = 9000): Promise<string> {
+  return new Promise((resolve) => {
+    const Ctor = getRecognitionCtor();
+    if (!Ctor) {
+      resolve("");
+      return;
+    }
+    const recognition = new Ctor();
+    recognition.lang = lang;
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    let text = "";
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      try {
+        recognition.abort();
+      } catch {
+        /* already stopped */
+      }
+      resolve(text.trim());
+    };
+    const timer = window.setTimeout(finish, timeoutMs);
+    recognition.onresult = (event: unknown) => {
+      const e = event as { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+      let heard = "";
+      for (let i = 0; i < e.results.length; i += 1) heard += e.results[i][0].transcript;
+      text = heard;
+    };
+    recognition.onerror = finish;
+    recognition.onend = finish;
+    try {
+      recognition.start();
+    } catch {
+      finish();
+    }
+  });
+}
+
 /** Browser speech-to-text. Returns a transcript that updates while listening. */
 export function useSpeechRecognition(lang = "en-US") {
   const [listening, setListening] = useState(false);
