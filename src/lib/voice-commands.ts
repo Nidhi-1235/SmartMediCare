@@ -15,6 +15,13 @@ export type VoiceIntent =
   | "repeat"
   | "stop"
   | "help"
+  | "setAlarm"
+  | "back"
+  | "whereAmI"
+  | "yes"
+  | "no"
+  | "cancel"
+  | "snooze"
   | "lang:en"
   | "lang:kn"
   | "lang:hi";
