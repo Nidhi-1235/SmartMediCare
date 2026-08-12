@@ -1,33 +1,42 @@
-# Automatic dose alarms + hands-free voice
+# Voice-first navigation, spoken alarm setup, push-to-talk mic
 
-Two changes: doses ring an alarm on their own, and the microphone listens continuously instead of needing a tap.
+Three connected pieces so the app can be driven entirely by speech, in English, Kannada or Hindi.
 
-## 1. Dose alarms
+## 1. Hands-free navigation
 
-- While the app is open, each scheduled dose time triggers an alarm: a loud repeating chime plus a spoken announcement in the chosen language ("It is 8 o'clock. Time for Metformin, one tablet").
-- A full-screen alarm panel appears with two very large buttons: "Taken" and "Snooze 10 minutes". It also responds to the spoken words "taken", "snooze", "stop" — no touch needed.
-- If nothing is answered, the alarm repeats every 2 minutes up to 3 times, then the dose is left as missed and the home screen shows it.
-- Permission for system notifications is requested once (spoken prompt); when granted, a notification also fires so the alarm is noticeable if the app is in the background on the phone.
-- A "Test alarm" button in Settings so the user can hear it and confirm the sound works.
+- Spoken commands move between Home, Scan, Schedule, Assistant, More and Emergency, recognised in the selected language (this wiring already exists and is extended, not rebuilt).
+- Every arrival on a screen is announced aloud, followed by its main content, so the user always knows where they are.
+- "Where am I", "go back", and "repeat" are added; unrecognised speech gets a spoken list of what can be said on the current screen.
+- Each recognised command is confirmed aloud before it runs.
 
-Note: a web app can only ring reliably while it is open or recently backgrounded. Alarms that fire with the phone fully asleep need the Android build (Capacitor local notifications) — that stays available as a later step.
+## 2. Setting an alarm entirely by voice
 
-## 2. Voice without tapping
+- Saying "set alarm" / "ಅಲಾರಂ ಇಡಿ" / "अलार्म लगाओ" from any screen starts a spoken, step-by-step setup — no typing, no buttons:
+  1. "Which medicine?" — the user says a name; if it matches a saved medicine it is used, otherwise a new medicine is created with that name.
+  2. "How many times a day?" — a number.
+  3. "At what times?" — spoken times, one at a time ("eight in the morning", "ಎಂಟು ಗಂಟೆ", "रात नौ बजे"), each read back for confirmation.
+  4. Full read-back: "Metformin, twice a day, at 8 in the morning and 9 at night. Say yes to save." — "yes" saves, "no" restarts, "cancel" exits.
+- Everything is saved to the existing medicines and schedules records, so it shows up on Home and Schedule immediately.
+- One-shot phrases also work: "remind me to take Metformin at 8 in the morning" is parsed directly and only asks for confirmation.
+- Errors are spoken and recoverable: an unclear time is asked again rather than dropped.
+- The alarms themselves ring at their times with a chime plus a spoken announcement, answerable by saying "taken" or "snooze" — no touch.
 
-- Pressing the phone's volume up or down key starts listening from any screen — no need to find the mic button. A short beep plus "Listening" confirms it started.
-- Once started, recognition keeps running: it restarts itself after each result, error, or silence, so the user can give one command after another without pressing anything again.
-- Saying "stop listening" (or pressing volume again) turns it off, confirmed aloud.
-- Each accepted command is confirmed aloud before it runs; unrecognised speech gets the spoken list of options.
-- The on-screen mic button stays as a status indicator (listening / off) and manual fallback.
+## 3. Push-to-talk listening only
 
-Note: hardware volume keys are only reachable from the Android build (Capacitor). In the browser preview the same trigger is wired to the on-screen speaker/volume button in the header, so the behaviour can be tested now and works identically once packaged.
+- The microphone is off by default and never listens in the background.
+- Pressing the phone's volume up or down key starts one listening turn: a short beep plus "Listening", then it captures a single command and stops on its own.
+- During a spoken setup flow, listening reopens automatically for each answer and closes after the flow ends or the user says "cancel".
+- A spoken "microphone off" line confirms every time it stops, so there is never uncertainty about whether it is on.
+- The on-screen mic button remains as a status light and manual alternative.
 
+In the browser preview hardware volume keys are not available, so the same trigger is wired to the on-screen speaker button in the header; the Android build maps it to the real volume keys with identical behaviour.
 
 ## Technical notes
 
-- New `src/lib/alarm.tsx`: `AlarmProvider` mounted in `__root.tsx` inside the authenticated shell; a 20-second interval compares `buildTodayDoses` output against now, fires for any dose whose time is reached and not yet logged, tracks fired/snoozed keys in `localStorage` so a reload does not re-ring. Chime generated with the Web Audio API (no asset), speech through the existing `useSpeech`. Renders an `AlarmDialog` overlay; "Taken" calls the existing `logDose` mutation and invalidates `dose_logs`.
-- `src/lib/use-speech-recognition.ts`: add a continuous mode with auto-restart in `onend`/`onerror` (backoff on `not-allowed`) and a `paused` flag so spoken output does not feed back into recognition.
-- `src/components/voice-command-bar.tsx`: expose a global `startListening` trigger; the header speaker/volume button and a `volumebuttonlistener` handler (Capacitor `@capacitor/app` / VolumeButtons plugin, no-op on web) both call it. Alarm intents (`taken`, `snooze`) route to the alarm dialog when it is open.
-- `src/lib/voice-commands.ts`: add `snooze`, `taken` and `stopListening` phrases in all three languages.
-- `src/routes/_authenticated/more.tsx`: hands-free toggle and test-alarm button, with `t()` keys added to `src/lib/i18n.tsx` for en/kn/hi.
-- No database or schema changes.
+- `src/lib/use-speech-recognition.ts`: single-turn mode with explicit start/stop, a `paused` flag so spoken output does not feed the mic, and a promise-style `listenOnce()` used by the setup dialog.
+- New `src/lib/alarm-setup.tsx`: a small state machine (medicine → count → times → confirm) driving prompts through `useSpeech` and answers through `listenOnce()`; parses spoken numbers and times in en/kn/hi into `HH:MM`; saves through the existing `insertMedicine` / `insertSchedule` in `src/lib/db.ts` and invalidates the medicines/schedules queries. Renders a large high-contrast status panel while running.
+- New `src/lib/alarm.tsx`: `AlarmProvider` with a 20-second tick over `buildTodayDoses`; Web Audio chime, spoken announcement, overlay with Taken / Snooze; fired and snoozed keys kept in `localStorage` so reloads do not re-ring; "Taken" calls the existing `logDose`.
+- `src/components/voice-command-bar.tsx`: exposes a global `startListening()`; the header speaker button and a volume-key listener (Capacitor plugin on Android, no-op on web) both call it. Routes `setAlarm`, `taken`, `snooze`, `cancel`, `yes`, `no` intents to the active flow.
+- `src/lib/voice-commands.ts`: new intents `setAlarm`, `back`, `whereAmI`, `yes`, `no`, `cancel`, `taken`, `snooze` with phrases in all three languages.
+- `src/routes/_authenticated/*.tsx`: each screen announces itself on mount via the existing speech hook and answers "read page".
+- New `t()` keys for every spoken prompt in `src/lib/i18n.tsx` (en/kn/hi). No database or schema changes.
