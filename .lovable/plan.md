@@ -14,17 +14,20 @@ Note: a web app can only ring reliably while it is open or recently backgrounded
 
 ## 2. Voice without tapping
 
-- Listening starts automatically when the app opens (after one spoken "Voice is on" confirmation, since browsers need a first tap anywhere to allow the microphone).
-- Recognition runs continuously and restarts itself after every result, error, or silence, so the user never has to press the mic.
-- Wake word: normal speech is ignored unless it starts with "medi" / "ಔಷಧಿ" / "दवा", or matches a direct command. This prevents random conversation from triggering navigation.
-- Each accepted command is confirmed aloud before it runs; "stop listening" turns the mic off and Settings has a hands-free on/off switch plus a wake-word on/off switch.
-- The mic button stays on screen as a status indicator (listening / off) and manual override.
+- Pressing the phone's volume up or down key starts listening from any screen — no need to find the mic button. A short beep plus "Listening" confirms it started.
+- Once started, recognition keeps running: it restarts itself after each result, error, or silence, so the user can give one command after another without pressing anything again.
+- Saying "stop listening" (or pressing volume again) turns it off, confirmed aloud.
+- Each accepted command is confirmed aloud before it runs; unrecognised speech gets the spoken list of options.
+- The on-screen mic button stays as a status indicator (listening / off) and manual fallback.
+
+Note: hardware volume keys are only reachable from the Android build (Capacitor). In the browser preview the same trigger is wired to the on-screen speaker/volume button in the header, so the behaviour can be tested now and works identically once packaged.
+
 
 ## Technical notes
 
 - New `src/lib/alarm.tsx`: `AlarmProvider` mounted in `__root.tsx` inside the authenticated shell; a 20-second interval compares `buildTodayDoses` output against now, fires for any dose whose time is reached and not yet logged, tracks fired/snoozed keys in `localStorage` so a reload does not re-ring. Chime generated with the Web Audio API (no asset), speech through the existing `useSpeech`. Renders an `AlarmDialog` overlay; "Taken" calls the existing `logDose` mutation and invalidates `dose_logs`.
-- `src/lib/use-speech-recognition.ts`: add `continuous` mode with auto-restart in `onend`/`onerror` (with backoff on `not-allowed`), and a `paused` flag so speech synthesis output does not feed back into recognition.
-- `src/components/voice-command-bar.tsx`: auto-start on mount when hands-free is enabled, wake-word filter before `matchIntent`, and alarm intents (`taken`, `snooze`) routed to the alarm dialog when it is open.
-- `src/lib/voice-commands.ts`: add `snooze` and `taken` phrases in all three languages.
-- `src/routes/_authenticated/more.tsx`: hands-free toggle, wake-word toggle, test-alarm button, all with `t()` keys added to `src/lib/i18n.tsx` for en/kn/hi.
+- `src/lib/use-speech-recognition.ts`: add a continuous mode with auto-restart in `onend`/`onerror` (backoff on `not-allowed`) and a `paused` flag so spoken output does not feed back into recognition.
+- `src/components/voice-command-bar.tsx`: expose a global `startListening` trigger; the header speaker/volume button and a `volumebuttonlistener` handler (Capacitor `@capacitor/app` / VolumeButtons plugin, no-op on web) both call it. Alarm intents (`taken`, `snooze`) route to the alarm dialog when it is open.
+- `src/lib/voice-commands.ts`: add `snooze`, `taken` and `stopListening` phrases in all three languages.
+- `src/routes/_authenticated/more.tsx`: hands-free toggle and test-alarm button, with `t()` keys added to `src/lib/i18n.tsx` for en/kn/hi.
 - No database or schema changes.
