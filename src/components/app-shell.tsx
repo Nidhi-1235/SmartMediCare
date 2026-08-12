@@ -44,8 +44,19 @@ export function AppShell({
             <h1 className="truncate font-display text-2xl font-bold text-foreground">{title}</h1>
             {subtitle ? <p className="truncate text-sm text-muted-foreground">{subtitle}</p> : null}
           </div>
-          {action ? <div className="shrink-0">{action}</div> : null}
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => requestListening()}
+              aria-label={t("voice.tapAndSpeak")}
+              className="tap-target flex size-14 items-center justify-center rounded-full bg-secondary text-primary"
+            >
+              <Volume2 aria-hidden="true" className="size-7" />
+            </button>
+            {action}
+          </div>
         </div>
+
       </header>
 
       <main id="main" className="flex-1 px-5 pb-44 pt-5">
