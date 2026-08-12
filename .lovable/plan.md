@@ -26,8 +26,8 @@ Note: hardware volume keys are only reachable from the Android build (Capacitor)
 ## Technical notes
 
 - New `src/lib/alarm.tsx`: `AlarmProvider` mounted in `__root.tsx` inside the authenticated shell; a 20-second interval compares `buildTodayDoses` output against now, fires for any dose whose time is reached and not yet logged, tracks fired/snoozed keys in `localStorage` so a reload does not re-ring. Chime generated with the Web Audio API (no asset), speech through the existing `useSpeech`. Renders an `AlarmDialog` overlay; "Taken" calls the existing `logDose` mutation and invalidates `dose_logs`.
-- `src/lib/use-speech-recognition.ts`: add `continuous` mode with auto-restart in `onend`/`onerror` (with backoff on `not-allowed`), and a `paused` flag so speech synthesis output does not feed back into recognition.
-- `src/components/voice-command-bar.tsx`: auto-start on mount when hands-free is enabled, wake-word filter before `matchIntent`, and alarm intents (`taken`, `snooze`) routed to the alarm dialog when it is open.
-- `src/lib/voice-commands.ts`: add `snooze` and `taken` phrases in all three languages.
-- `src/routes/_authenticated/more.tsx`: hands-free toggle, wake-word toggle, test-alarm button, all with `t()` keys added to `src/lib/i18n.tsx` for en/kn/hi.
+- `src/lib/use-speech-recognition.ts`: add a continuous mode with auto-restart in `onend`/`onerror` (backoff on `not-allowed`) and a `paused` flag so spoken output does not feed back into recognition.
+- `src/components/voice-command-bar.tsx`: expose a global `startListening` trigger; the header speaker/volume button and a `volumebuttonlistener` handler (Capacitor `@capacitor/app` / VolumeButtons plugin, no-op on web) both call it. Alarm intents (`taken`, `snooze`) route to the alarm dialog when it is open.
+- `src/lib/voice-commands.ts`: add `snooze`, `taken` and `stopListening` phrases in all three languages.
+- `src/routes/_authenticated/more.tsx`: hands-free toggle and test-alarm button, with `t()` keys added to `src/lib/i18n.tsx` for en/kn/hi.
 - No database or schema changes.
