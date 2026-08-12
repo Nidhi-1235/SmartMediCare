@@ -409,7 +409,108 @@ const hi: Dict = {
   "emergency.noContactSpoken": "अभी कोई आपातकालीन संपर्क सहेजा नहीं है। कृपया 'और' टैब में जोड़ें।",
 };
 
-const DICTS: Record<Lang, Dict> = { en, kn, hi };
+/** Extra strings for hands-free navigation, spoken alarm setup and the alarm ring. */
+const voiceEn: Dict = {
+  "voice.listen": "Press to listen",
+  "voice.listening": "Listening",
+  "voice.micOff": "Microphone off.",
+  "voice.nothingHeard": "I did not hear anything.",
+  "voice.whereAmI": "You are on the {screen} screen.",
+  "voice.wentBack": "Going back.",
+  "voice.help":
+    "You can say: home, scan, schedule, assistant, settings, emergency, set alarm, take photo, upload photo, save, mark taken, read page, where am I, go back, repeat, stop.",
+
+  "alarm.setup.start": "Setting an alarm. Which medicine?",
+  "alarm.setup.askMedicine": "Say the medicine name.",
+  "alarm.setup.askCount": "How many times a day? Say a number.",
+  "alarm.setup.askTime": "At what time for dose {index}? For example, say eight in the morning.",
+  "alarm.setup.timeHeard": "Time {index}: {time}.",
+  "alarm.setup.badTime": "I did not catch that time. Please say it again.",
+  "alarm.setup.badCount": "Please say a number between one and six.",
+  "alarm.setup.confirm": "{medicine}, {count} times a day, at {times}. Say yes to save, or no to start again.",
+  "alarm.setup.saved": "Alarm saved for {medicine} at {times}.",
+  "alarm.setup.failed": "Sorry, the alarm did not save. Please try again.",
+  "alarm.setup.cancelled": "Alarm setup cancelled.",
+  "alarm.setup.title": "Voice alarm setup",
+  "alarm.setup.cancel": "Cancel",
+  "alarm.ring": "It is {time}. Time for {medicine}. Say taken, or say snooze.",
+  "alarm.title": "Medicine alarm",
+  "alarm.taken": "Taken",
+  "alarm.snooze": "Snooze 10 minutes",
+  "alarm.snoozed": "Snoozed for ten minutes.",
+  "alarm.testTitle": "Test the alarm",
+  "alarm.test": "Play a test alarm",
+};
+
+const voiceKn: Dict = {
+  "voice.listen": "ಕೇಳಲು ಒತ್ತಿ",
+  "voice.listening": "ಕೇಳುತ್ತಿದ್ದೇನೆ",
+  "voice.micOff": "ಮೈಕ್ರೊಫೋನ್ ಆಫ್ ಆಗಿದೆ.",
+  "voice.nothingHeard": "ನನಗೆ ಏನೂ ಕೇಳಿಸಲಿಲ್ಲ.",
+  "voice.whereAmI": "ನೀವು {screen} ಪರದೆಯಲ್ಲಿದ್ದೀರಿ.",
+  "voice.wentBack": "ಹಿಂದಕ್ಕೆ ಹೋಗುತ್ತಿದ್ದೇನೆ.",
+  "voice.help":
+    "ನೀವು ಹೇಳಬಹುದು: ಮುಖಪುಟ, ಸ್ಕ್ಯಾನ್, ವೇಳಾಪಟ್ಟಿ, ಸಹಾಯಕ, ಸೆಟ್ಟಿಂಗ್ಸ್, ತುರ್ತು, ಅಲಾರಂ ಇಡಿ, ಫೋಟೋ ತೆಗೆ, ಫೋಟೋ ಅಪ್‌ಲೋಡ್, ಉಳಿಸಿ, ತೆಗೆದುಕೊಂಡೆ, ಪುಟ ಓದಿ, ನಾನು ಎಲ್ಲಿದ್ದೇನೆ, ಹಿಂದಕ್ಕೆ, ಮತ್ತೆ ಹೇಳಿ, ನಿಲ್ಲಿಸಿ.",
+
+  "alarm.setup.start": "ಅಲಾರಂ ಇಡುತ್ತಿದ್ದೇನೆ. ಯಾವ ಔಷಧಿ?",
+  "alarm.setup.askMedicine": "ಔಷಧಿಯ ಹೆಸರು ಹೇಳಿ.",
+  "alarm.setup.askCount": "ದಿನಕ್ಕೆ ಎಷ್ಟು ಬಾರಿ? ಸಂಖ್ಯೆ ಹೇಳಿ.",
+  "alarm.setup.askTime": "{index}ನೇ ಡೋಸ್ ಯಾವ ಸಮಯಕ್ಕೆ? ಉದಾಹರಣೆಗೆ, ಬೆಳಗ್ಗೆ ಎಂಟು ಗಂಟೆ ಎಂದು ಹೇಳಿ.",
+  "alarm.setup.timeHeard": "ಸಮಯ {index}: {time}.",
+  "alarm.setup.badTime": "ಸಮಯ ಅರ್ಥವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಹೇಳಿ.",
+  "alarm.setup.badCount": "ಒಂದರಿಂದ ಆರರವರೆಗಿನ ಸಂಖ್ಯೆ ಹೇಳಿ.",
+  "alarm.setup.confirm": "{medicine}, ದಿನಕ್ಕೆ {count} ಬಾರಿ, {times}ಕ್ಕೆ. ಉಳಿಸಲು ಹೌದು ಎಂದು ಹೇಳಿ, ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಲು ಇಲ್ಲ ಎಂದು ಹೇಳಿ.",
+  "alarm.setup.saved": "{medicine}ಗೆ {times} ಸಮಯಕ್ಕೆ ಅಲಾರಂ ಉಳಿಸಲಾಗಿದೆ.",
+  "alarm.setup.failed": "ಕ್ಷಮಿಸಿ, ಅಲಾರಂ ಉಳಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  "alarm.setup.cancelled": "ಅಲಾರಂ ಸೆಟಪ್ ರದ್ದಾಗಿದೆ.",
+  "alarm.setup.title": "ಧ್ವನಿ ಅಲಾರಂ ಸೆಟಪ್",
+  "alarm.setup.cancel": "ರದ್ದುಮಾಡಿ",
+  "alarm.ring": "ಈಗ {time}. {medicine} ತೆಗೆದುಕೊಳ್ಳುವ ಸಮಯ. ತೆಗೆದುಕೊಂಡೆ ಅಥವಾ ಸ್ನೂಜ್ ಎಂದು ಹೇಳಿ.",
+  "alarm.title": "ಔಷಧಿ ಅಲಾರಂ",
+  "alarm.taken": "ತೆಗೆದುಕೊಂಡೆ",
+  "alarm.snooze": "ಹತ್ತು ನಿಮಿಷ ಸ್ನೂಜ್",
+  "alarm.snoozed": "ಹತ್ತು ನಿಮಿಷ ಸ್ನೂಜ್ ಮಾಡಲಾಗಿದೆ.",
+  "alarm.testTitle": "ಅಲಾರಂ ಪರೀಕ್ಷಿಸಿ",
+  "alarm.test": "ಪರೀಕ್ಷಾ ಅಲಾರಂ ಬಾರಿಸಿ",
+};
+
+const voiceHi: Dict = {
+  "voice.listen": "सुनने के लिए दबाएँ",
+  "voice.listening": "सुन रहा हूँ",
+  "voice.micOff": "माइक्रोफ़ोन बंद।",
+  "voice.nothingHeard": "मुझे कुछ सुनाई नहीं दिया।",
+  "voice.whereAmI": "आप {screen} स्क्रीन पर हैं।",
+  "voice.wentBack": "वापस जा रहा हूँ।",
+  "voice.help":
+    "आप कह सकते हैं: होम, स्कैन, समय सारणी, सहायक, सेटिंग, आपातकाल, अलार्म लगाओ, फोटो लो, फोटो अपलोड, सेव, ले लिया, पृष्ठ पढ़ो, मैं कहाँ हूँ, वापस, फिर से, रुको।",
+
+  "alarm.setup.start": "अलार्म लगा रहा हूँ। कौन सी दवा?",
+  "alarm.setup.askMedicine": "दवा का नाम बोलिए।",
+  "alarm.setup.askCount": "दिन में कितनी बार? एक संख्या बोलिए।",
+  "alarm.setup.askTime": "{index} वीं खुराक किस समय? जैसे, सुबह आठ बजे।",
+  "alarm.setup.timeHeard": "समय {index}: {time}।",
+  "alarm.setup.badTime": "समय समझ नहीं आया। कृपया फिर से बोलिए।",
+  "alarm.setup.badCount": "कृपया एक से छह के बीच संख्या बोलिए।",
+  "alarm.setup.confirm": "{medicine}, दिन में {count} बार, {times} पर। सहेजने के लिए हाँ कहें, दोबारा शुरू करने के लिए नहीं कहें।",
+  "alarm.setup.saved": "{medicine} के लिए {times} पर अलार्म सहेजा गया।",
+  "alarm.setup.failed": "क्षमा करें, अलार्म सहेजा नहीं गया। फिर कोशिश करें।",
+  "alarm.setup.cancelled": "अलार्म सेटअप रद्द।",
+  "alarm.setup.title": "वॉइस अलार्म सेटअप",
+  "alarm.setup.cancel": "रद्द करें",
+  "alarm.ring": "अभी {time} बजे हैं। {medicine} लेने का समय। 'ले लिया' या 'स्नूज़' कहें।",
+  "alarm.title": "दवा अलार्म",
+  "alarm.taken": "ले लिया",
+  "alarm.snooze": "10 मिनट स्नूज़",
+  "alarm.snoozed": "दस मिनट के लिए स्नूज़।",
+  "alarm.testTitle": "अलार्म जाँचें",
+  "alarm.test": "टेस्ट अलार्म बजाएँ",
+};
+
+const DICTS: Record<Lang, Dict> = {
+  en: { ...en, ...voiceEn },
+  kn: { ...kn, ...voiceKn },
+  hi: { ...hi, ...voiceHi },
+};
 
 type I18nValue = {
   lang: Lang;

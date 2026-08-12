@@ -1,9 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CalendarClock, Home, MessageCircleHeart, ScanLine, Settings2 } from "lucide-react";
+import { CalendarClock, Home, MessageCircleHeart, ScanLine, Settings2, Volume2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { SosButton } from "./sos-button";
 import { VoiceCommandBar } from "./voice-command-bar";
 import { useI18n } from "@/lib/i18n";
+import { requestListening } from "@/lib/voice-commands";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -43,8 +44,19 @@ export function AppShell({
             <h1 className="truncate font-display text-2xl font-bold text-foreground">{title}</h1>
             {subtitle ? <p className="truncate text-sm text-muted-foreground">{subtitle}</p> : null}
           </div>
-          {action ? <div className="shrink-0">{action}</div> : null}
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => requestListening()}
+              aria-label={t("voice.tapAndSpeak")}
+              className="tap-target flex size-14 items-center justify-center rounded-full bg-secondary text-primary"
+            >
+              <Volume2 aria-hidden="true" className="size-7" />
+            </button>
+            {action}
+          </div>
         </div>
+
       </header>
 
       <main id="main" className="flex-1 px-5 pb-44 pt-5">

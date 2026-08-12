@@ -15,6 +15,13 @@ export type VoiceIntent =
   | "repeat"
   | "stop"
   | "help"
+  | "setAlarm"
+  | "back"
+  | "whereAmI"
+  | "yes"
+  | "no"
+  | "cancel"
+  | "snooze"
   | "lang:en"
   | "lang:kn"
   | "lang:hi";
@@ -38,10 +45,46 @@ const PHRASES: Array<[VoiceIntent, string[]]> = [
   ["repeat", ["repeat", "say again", "ಮತ್ತೆ ಹೇಳಿ", "ಪುನಃ", "फिर से", "दोहरा"]],
   ["stop", ["stop", "quiet", "silence", "ನಿಲ್ಲಿಸಿ", "ಸುಮ್ಮನಿರಿ", "रुको", "बंद करो", "चुप"]],
   ["help", ["help", "what can i say", "commands", "ಸಹಾಯ", "ಏನು ಹೇಳಬಹುದು", "मदद", "क्या कह सकता"]],
+  [
+    "setAlarm",
+    [
+      "set alarm",
+      "set an alarm",
+      "set a reminder",
+      "add reminder",
+      "new alarm",
+      "remind me",
+      "ಅಲಾರಂ ಇಡಿ",
+      "ಅಲಾರಂ",
+      "ನೆನಪಿಸು",
+      "अलार्म लगाओ",
+      "अलार्म",
+      "याद दिलाओ",
+      "रिमाइंडर लगाओ",
+    ],
+  ],
+  ["snooze", ["snooze", "later", "ಸ್ನೂಜ್", "ನಂತರ", "स्नूज़", "स्नूज", "बाद में"]],
+  ["back", ["go back", "back", "previous", "ಹಿಂದಕ್ಕೆ", "ಹಿಂದಿನದು", "वापस", "पीछे"]],
+  ["whereAmI", ["where am i", "which screen", "ನಾನು ಎಲ್ಲಿದ್ದೇನೆ", "ಯಾವ ಪರದೆ", "मैं कहाँ हूँ", "कौन सी स्क्रीन"]],
+  ["yes", ["yes", "yeah", "correct", "okay", "ok", "ಹೌದು", "ಸರಿ", "हाँ", "हां", "ठीक", "सही"]],
+  ["no", ["no", "wrong", "again", "ಇಲ್ಲ", "ತಪ್ಪು", "नहीं", "गलत"]],
+  ["cancel", ["cancel", "exit", "quit", "ರದ್ದು", "ರದ್ದುಮಾಡಿ", "रद्द", "बंद"]],
   ["lang:en", ["speak english", "english", "ಇಂಗ್ಲಿಷ್", "अंग्रेज़ी", "अंग्रेजी", "इंग्लिश"]],
   ["lang:kn", ["speak kannada", "kannada", "ಕನ್ನಡ", "कन्नड़"]],
   ["lang:hi", ["speak hindi", "hindi", "ಹಿಂದಿ", "हिंदी", "हिन्दी"]],
 ];
+
+const LISTEN_EVENT = "smc:voice-listen";
+
+/** Asks the always-mounted voice bar to start one listening turn. */
+export function requestListening() {
+  window.dispatchEvent(new Event(LISTEN_EVENT));
+}
+
+export function onListenRequest(handler: () => void) {
+  window.addEventListener(LISTEN_EVENT, handler);
+  return () => window.removeEventListener(LISTEN_EVENT, handler);
+}
 
 /** Matches a spoken phrase to an intent, tolerating extra words around it. */
 export function matchIntent(transcript: string): VoiceIntent | null {
