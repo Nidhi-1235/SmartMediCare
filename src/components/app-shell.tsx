@@ -1,9 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CalendarClock, Home, MessageCircleHeart, ScanLine, Settings2 } from "lucide-react";
+import { CalendarClock, Home, MessageCircleHeart, ScanLine, Settings2, Volume2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { SosButton } from "./sos-button";
 import { VoiceCommandBar } from "./voice-command-bar";
 import { useI18n } from "@/lib/i18n";
+import { requestListening } from "@/lib/voice-commands";
 import { cn } from "@/lib/utils";
 
 const NAV = [
